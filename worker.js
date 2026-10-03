@@ -310,8 +310,3 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
-
-    // Serve the existing CANVO website
-    return env.ASSETS.fetch(request);
-  }
-};
