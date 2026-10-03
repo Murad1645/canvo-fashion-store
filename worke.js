@@ -1,3 +1,5 @@
+// CANVO backend - D1 database integration
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
