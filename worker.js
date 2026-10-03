@@ -1,5 +1,7 @@
 // CANVO backend - D1 database integration
 
+// CANVO backend - D1 database integration
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -30,6 +32,43 @@ export default {
           {
             ok: false,
             database: "D1 connection failed",
+            error: error.message
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Get active products from D1
+    if (url.pathname === "/api/products" && request.method === "GET") {
+      try {
+        const { results } = await env.DB
+          .prepare(`
+            SELECT
+              id,
+              name,
+              slug,
+              category,
+              description,
+              price,
+              old_price,
+              image_url,
+              status,
+              created_at
+            FROM products
+            WHERE status = 'active'
+            ORDER BY id DESC
+          `)
+          .all();
+
+        return Response.json({
+          ok: true,
+          products: results
+        });
+      } catch (error) {
+        return Response.json(
+          {
+            ok: false,
             error: error.message
           },
           { status: 500 }
