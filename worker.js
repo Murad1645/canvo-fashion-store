@@ -1,17 +1,18 @@
 // CANVO backend
-// D1 database + Admin setup + Products API
+// D1 database + Admin authentication + Products API
 
-// --------------------------------------------------
-// Password hashing helpers
-// --------------------------------------------------
+
+// ==================================================
+// PASSWORD HELPERS
+// ==================================================
 
 async function hashPassword(password) {
   const encoder = new TextEncoder();
 
-  // Generate a random salt
+  // Generate random salt
   const salt = crypto.getRandomValues(new Uint8Array(16));
 
-  // Import password as a key
+  // Import password
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     encoder.encode(password),
@@ -20,7 +21,7 @@ async function hashPassword(password) {
     ["deriveBits"]
   );
 
-  // Derive password hash using PBKDF2
+  // PBKDF2 password hashing
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
@@ -34,7 +35,6 @@ async function hashPassword(password) {
 
   const hashBytes = new Uint8Array(derivedBits);
 
-  // Convert salt and hash to hexadecimal
   const saltHex = Array.from(salt)
     .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
@@ -43,38 +43,172 @@ async function hashPassword(password) {
     .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
 
-  // Store algorithm + iterations + salt + hash
   return `pbkdf2$100000$${saltHex}$${hashHex}`;
 }
 
 
-// --------------------------------------------------
-// Worker
-// --------------------------------------------------
+// ==================================================
+// VERIFY PASSWORD
+// ==================================================
+
+async function verifyPassword(password, storedHash) {
+  try {
+    const parts = storedHash.split("$");
+
+    if (parts.length !== 4) {
+      return false;
+    }
+
+    const algorithm = parts[0];
+    const iterations = Number(parts[1]);
+    const saltHex = parts[2];
+    const storedHashHex = parts[3];
+
+    if (algorithm !== "pbkdf2") {
+      return false;
+    }
+
+    if (!Number.isFinite(iterations) || iterations <= 0) {
+      return false;
+    }
+
+    // Convert hex salt back to bytes
+    const salt = new Uint8Array(saltHex.length / 2);
+
+    for (let i = 0; i < salt.length; i++) {
+      salt[i] = parseInt(
+        saltHex.substring(i * 2, i * 2 + 2),
+        16
+      );
+    }
+
+    const encoder = new TextEncoder();
+
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"]
+    );
+
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: iterations,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      256
+    );
+
+    const calculatedHash = new Uint8Array(derivedBits);
+
+    const calculatedHashHex = Array.from(calculatedHash)
+      .map(byte => byte.toString(16).padStart(2, "0"))
+      .join("");
+
+    return calculatedHashHex === storedHashHex;
+
+  } catch {
+    return false;
+  }
+}
+
+
+// ==================================================
+// HASH SESSION TOKEN
+// ==================================================
+
+async function hashToken(token) {
+  const encoder = new TextEncoder();
+
+  const data = await crypto.subtle.digest(
+    "SHA-256",
+    encoder.encode(token)
+  );
+
+  return Array.from(new Uint8Array(data))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+
+// ==================================================
+// GENERATE SESSION TOKEN
+// ==================================================
+
+function generateSessionToken() {
+  const bytes = crypto.getRandomValues(
+    new Uint8Array(32)
+  );
+
+  return Array.from(bytes)
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+
+// ==================================================
+// COOKIE HELPERS
+// ==================================================
+
+function getCookie(request, name) {
+  const cookieHeader = request.headers.get("Cookie");
+
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies = cookieHeader.split(";");
+
+  for (const cookie of cookies) {
+    const [key, ...valueParts] = cookie.trim().split("=");
+
+    if (key === name) {
+      return decodeURIComponent(valueParts.join("="));
+    }
+  }
+
+  return null;
+}
+
+
+// ==================================================
+// WORKER
+// ==================================================
 
 export default {
+
   async fetch(request, env) {
+
     const url = new URL(request.url);
 
-    // ------------------------------------------------
-    // 1. API health check
-    // ------------------------------------------------
+
+    // ==================================================
+    // 1. API HEALTH
+    // ==================================================
 
     if (url.pathname === "/api/health") {
+
       return Response.json({
         ok: true,
         service: "CANVO API",
         database: "connected"
       });
+
     }
 
 
-    // ------------------------------------------------
-    // 2. Real D1 database test
-    // ------------------------------------------------
+    // ==================================================
+    // 2. D1 DATABASE TEST
+    // ==================================================
 
     if (url.pathname === "/api/db-test") {
+
       try {
+
         const result = await env.DB
           .prepare("SELECT 1 AS test")
           .first();
@@ -86,6 +220,7 @@ export default {
         });
 
       } catch (error) {
+
         return Response.json(
           {
             ok: false,
@@ -94,31 +229,36 @@ export default {
           },
           { status: 500 }
         );
+
       }
+
     }
 
 
-    // ------------------------------------------------
-    // 3. First admin account setup
-    // ------------------------------------------------
+    // ==================================================
+    // 3. FIRST ADMIN SETUP
+    // ==================================================
 
     if (
       url.pathname === "/api/admin/setup" &&
       request.method === "POST"
     ) {
+
       try {
 
-        // --------------------------------------------
-        // Check whether an admin already exists
-        // --------------------------------------------
-
         const adminCount = await env.DB
-          .prepare("SELECT COUNT(*) AS count FROM admins")
+          .prepare(
+            "SELECT COUNT(*) AS count FROM admins"
+          )
           .first();
 
-        const existingAdmins = Number(adminCount?.count || 0);
+        const existingAdmins =
+          Number(adminCount?.count || 0);
 
+
+        // Setup only allowed when there are no admins
         if (existingAdmins > 0) {
+
           return Response.json(
             {
               ok: false,
@@ -126,21 +266,20 @@ export default {
             },
             { status: 403 }
           );
+
         }
 
 
-        // --------------------------------------------
-        // Check secret setup key
-        // --------------------------------------------
+        // Check setup secret
+        const setupKey =
+          request.headers.get("X-Admin-Setup-Key");
 
-        const setupKey = request.headers.get(
-          "X-Admin-Setup-Key"
-        );
 
         if (
           !setupKey ||
           setupKey !== env.ADMIN_SETUP_KEY
         ) {
+
           return Response.json(
             {
               ok: false,
@@ -148,18 +287,18 @@ export default {
             },
             { status: 401 }
           );
+
         }
 
-
-        // --------------------------------------------
-        // Read request body
-        // --------------------------------------------
 
         let body;
 
         try {
+
           body = await request.json();
+
         } catch {
+
           return Response.json(
             {
               ok: false,
@@ -167,6 +306,7 @@ export default {
             },
             { status: 400 }
           );
+
         }
 
 
@@ -175,42 +315,37 @@ export default {
         const password = body?.password;
 
 
-        // --------------------------------------------
-        // Validate input
-        // --------------------------------------------
-
         if (!name || !email || !password) {
+
           return Response.json(
             {
               ok: false,
-              error: "Name, email and password are required."
+              error:
+                "Name, email and password are required."
             },
             { status: 400 }
           );
+
         }
 
 
         if (password.length < 10) {
+
           return Response.json(
             {
               ok: false,
-              error: "Password must be at least 10 characters."
+              error:
+                "Password must be at least 10 characters."
             },
             { status: 400 }
           );
+
         }
 
 
-        // --------------------------------------------
-        // Hash password securely
-        // --------------------------------------------
+        const passwordHash =
+          await hashPassword(password);
 
-        const passwordHash = await hashPassword(password);
-
-
-        // --------------------------------------------
-        // Create admin account
-        // --------------------------------------------
 
         const result = await env.DB
           .prepare(`
@@ -232,15 +367,13 @@ export default {
           .run();
 
 
-        // --------------------------------------------
-        // Success response
-        // --------------------------------------------
-
         return Response.json({
           ok: true,
-          message: "Admin account created successfully.",
+          message:
+            "Admin account created successfully.",
           admin_id: result.meta.last_row_id
         });
+
 
       } catch (error) {
 
@@ -251,18 +384,378 @@ export default {
           },
           { status: 500 }
         );
+
       }
+
     }
 
 
-    // ------------------------------------------------
-    // 4. Get active products
-    // ------------------------------------------------
+    // ==================================================
+    // 4. ADMIN LOGIN
+    // ==================================================
+
+    if (
+      url.pathname === "/api/admin/login" &&
+      request.method === "POST"
+    ) {
+
+      try {
+
+        let body;
+
+        try {
+
+          body = await request.json();
+
+        } catch {
+
+          return Response.json(
+            {
+              ok: false,
+              error: "Invalid JSON request body."
+            },
+            { status: 400 }
+          );
+
+        }
+
+
+        const email =
+          body?.email?.trim().toLowerCase();
+
+        const password =
+          body?.password;
+
+
+        if (!email || !password) {
+
+          return Response.json(
+            {
+              ok: false,
+              error: "Email and password are required."
+            },
+            { status: 400 }
+          );
+
+        }
+
+
+        // Find admin
+        const admin = await env.DB
+          .prepare(`
+            SELECT
+              id,
+              name,
+              email,
+              password_hash,
+              role,
+              status
+            FROM admins
+            WHERE email = ?
+            LIMIT 1
+          `)
+          .bind(email)
+          .first();
+
+
+        if (!admin || admin.status !== "active") {
+
+          return Response.json(
+            {
+              ok: false,
+              error: "Invalid email or password."
+            },
+            { status: 401 }
+          );
+
+        }
+
+
+        // Verify password
+        const passwordValid =
+          await verifyPassword(
+            password,
+            admin.password_hash
+          );
+
+
+        if (!passwordValid) {
+
+          return Response.json(
+            {
+              ok: false,
+              error: "Invalid email or password."
+            },
+            { status: 401 }
+          );
+
+        }
+
+
+        // Generate secure session token
+        const sessionToken =
+          generateSessionToken();
+
+        const sessionTokenHash =
+          await hashToken(sessionToken);
+
+
+        // Session expires in 7 days
+        const expiresAt =
+          new Date(
+            Date.now() + 7 * 24 * 60 * 60 * 1000
+          ).toISOString();
+
+
+        // Store hashed session token
+        await env.DB
+          .prepare(`
+            INSERT INTO admin_sessions
+            (
+              admin_id,
+              session_token_hash,
+              expires_at
+            )
+            VALUES (?, ?, ?)
+          `)
+          .bind(
+            admin.id,
+            sessionTokenHash,
+            expiresAt
+          )
+          .run();
+
+
+        // Secure session cookie
+        const cookie = [
+          `canvo_admin_session=${encodeURIComponent(sessionToken)}`,
+          "Path=/",
+          "HttpOnly",
+          "Secure",
+          "SameSite=Strict",
+          "Max-Age=604800"
+        ].join("; ");
+
+
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: "Login successful.",
+            admin: {
+              id: admin.id,
+              name: admin.name,
+              email: admin.email,
+              role: admin.role
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": cookie
+            }
+          }
+        );
+
+
+      } catch (error) {
+
+        return Response.json(
+          {
+            ok: false,
+            error: error.message
+          },
+          { status: 500 }
+        );
+
+      }
+
+    }
+
+
+    // ==================================================
+    // 5. CHECK CURRENT ADMIN SESSION
+    // ==================================================
+
+    if (
+      url.pathname === "/api/admin/me" &&
+      request.method === "GET"
+    ) {
+
+      try {
+
+        const sessionToken =
+          getCookie(
+            request,
+            "canvo_admin_session"
+          );
+
+
+        if (!sessionToken) {
+
+          return Response.json(
+            {
+              ok: false,
+              authenticated: false
+            },
+            { status: 401 }
+          );
+
+        }
+
+
+        const sessionTokenHash =
+          await hashToken(sessionToken);
+
+
+        const session = await env.DB
+          .prepare(`
+            SELECT
+              admin_sessions.id AS session_id,
+              admin_sessions.expires_at,
+              admins.id,
+              admins.name,
+              admins.email,
+              admins.role,
+              admins.status
+            FROM admin_sessions
+            INNER JOIN admins
+              ON admins.id = admin_sessions.admin_id
+            WHERE
+              admin_sessions.session_token_hash = ?
+              AND admin_sessions.expires_at > CURRENT_TIMESTAMP
+              AND admins.status = 'active'
+            LIMIT 1
+          `)
+          .bind(sessionTokenHash)
+          .first();
+
+
+        if (!session) {
+
+          return Response.json(
+            {
+              ok: false,
+              authenticated: false
+            },
+            { status: 401 }
+          );
+
+        }
+
+
+        return Response.json({
+          ok: true,
+          authenticated: true,
+          admin: {
+            id: session.id,
+            name: session.name,
+            email: session.email,
+            role: session.role
+          },
+          expires_at: session.expires_at
+        });
+
+
+      } catch (error) {
+
+        return Response.json(
+          {
+            ok: false,
+            error: error.message
+          },
+          { status: 500 }
+        );
+
+      }
+
+    }
+
+
+    // ==================================================
+    // 6. ADMIN LOGOUT
+    // ==================================================
+
+    if (
+      url.pathname === "/api/admin/logout" &&
+      request.method === "POST"
+    ) {
+
+      try {
+
+        const sessionToken =
+          getCookie(
+            request,
+            "canvo_admin_session"
+          );
+
+
+        if (sessionToken) {
+
+          const sessionTokenHash =
+            await hashToken(sessionToken);
+
+
+          await env.DB
+            .prepare(`
+              DELETE FROM admin_sessions
+              WHERE session_token_hash = ?
+            `)
+            .bind(sessionTokenHash)
+            .run();
+
+        }
+
+
+        const cookie = [
+          "canvo_admin_session=",
+          "Path=/",
+          "HttpOnly",
+          "Secure",
+          "SameSite=Strict",
+          "Max-Age=0"
+        ].join("; ");
+
+
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: "Logged out successfully."
+          }),
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "application/json",
+              "Set-Cookie": cookie
+            }
+          }
+        );
+
+
+      } catch (error) {
+
+        return Response.json(
+          {
+            ok: false,
+            error: error.message
+          },
+          { status: 500 }
+        );
+
+      }
+
+    }
+
+
+    // ==================================================
+    // 7. GET ACTIVE PRODUCTS
+    // ==================================================
 
     if (
       url.pathname === "/api/products" &&
       request.method === "GET"
     ) {
+
       try {
 
         const { results } = await env.DB
@@ -290,6 +783,7 @@ export default {
           products: results
         });
 
+
       } catch (error) {
 
         return Response.json(
@@ -299,14 +793,17 @@ export default {
           },
           { status: 500 }
         );
+
       }
+
     }
 
 
-    // ------------------------------------------------
-    // 5. Serve the existing CANVO website
-    // ------------------------------------------------
+    // ==================================================
+    // 8. SERVE CANVO WEBSITE
+    // ==================================================
 
     return env.ASSETS.fetch(request);
+
   }
 };
