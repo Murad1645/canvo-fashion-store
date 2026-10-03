@@ -1,18 +1,18 @@
-// CANVO backend
-// D1 database + Admin authentication + Products API
+// CANVO Backend
+// D1 Database + Admin Authentication + Products API
 
 
 // ==================================================
-// PASSWORD HELPERS
+// 1. PASSWORD HASHING
 // ==================================================
 
 async function hashPassword(password) {
   const encoder = new TextEncoder();
 
-  // Generate random salt
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const salt = crypto.getRandomValues(
+    new Uint8Array(16)
+  );
 
-  // Import password
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     encoder.encode(password),
@@ -21,7 +21,6 @@ async function hashPassword(password) {
     ["deriveBits"]
   );
 
-  // PBKDF2 password hashing
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
@@ -48,7 +47,7 @@ async function hashPassword(password) {
 
 
 // ==================================================
-// VERIFY PASSWORD
+// 2. PASSWORD VERIFICATION
 // ==================================================
 
 async function verifyPassword(password, storedHash) {
@@ -72,8 +71,13 @@ async function verifyPassword(password, storedHash) {
       return false;
     }
 
-    // Convert hex salt back to bytes
-    const salt = new Uint8Array(saltHex.length / 2);
+    if (saltHex.length % 2 !== 0) {
+      return false;
+    }
+
+    const salt = new Uint8Array(
+      saltHex.length / 2
+    );
 
     for (let i = 0; i < salt.length; i++) {
       salt[i] = parseInt(
@@ -103,10 +107,16 @@ async function verifyPassword(password, storedHash) {
       256
     );
 
-    const calculatedHash = new Uint8Array(derivedBits);
+    const calculatedHash = new Uint8Array(
+      derivedBits
+    );
 
-    const calculatedHashHex = Array.from(calculatedHash)
-      .map(byte => byte.toString(16).padStart(2, "0"))
+    const calculatedHashHex = Array.from(
+      calculatedHash
+    )
+      .map(byte =>
+        byte.toString(16).padStart(2, "0")
+      )
       .join("");
 
     return calculatedHashHex === storedHashHex;
@@ -118,25 +128,25 @@ async function verifyPassword(password, storedHash) {
 
 
 // ==================================================
-// HASH SESSION TOKEN
+// 3. HASH SESSION TOKEN
 // ==================================================
 
 async function hashToken(token) {
-  const encoder = new TextEncoder();
-
   const data = await crypto.subtle.digest(
     "SHA-256",
-    encoder.encode(token)
+    new TextEncoder().encode(token)
   );
 
   return Array.from(new Uint8Array(data))
-    .map(byte => byte.toString(16).padStart(2, "0"))
+    .map(byte =>
+      byte.toString(16).padStart(2, "0")
+    )
     .join("");
 }
 
 
 // ==================================================
-// GENERATE SESSION TOKEN
+// 4. GENERATE SESSION TOKEN
 // ==================================================
 
 function generateSessionToken() {
@@ -145,17 +155,20 @@ function generateSessionToken() {
   );
 
   return Array.from(bytes)
-    .map(byte => byte.toString(16).padStart(2, "0"))
+    .map(byte =>
+      byte.toString(16).padStart(2, "0")
+    )
     .join("");
 }
 
 
 // ==================================================
-// COOKIE HELPERS
+// 5. READ COOKIE
 // ==================================================
 
 function getCookie(request, name) {
-  const cookieHeader = request.headers.get("Cookie");
+  const cookieHeader =
+    request.headers.get("Cookie");
 
   if (!cookieHeader) {
     return null;
@@ -164,10 +177,13 @@ function getCookie(request, name) {
   const cookies = cookieHeader.split(";");
 
   for (const cookie of cookies) {
-    const [key, ...valueParts] = cookie.trim().split("=");
+    const [key, ...valueParts] =
+      cookie.trim().split("=");
 
     if (key === name) {
-      return decodeURIComponent(valueParts.join("="));
+      return decodeURIComponent(
+        valueParts.join("=")
+      );
     }
   }
 
@@ -176,7 +192,19 @@ function getCookie(request, name) {
 
 
 // ==================================================
-// WORKER
+// 6. SQLITE DATE FORMAT
+// ==================================================
+
+function sqliteDate(date) {
+  return date
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+}
+
+
+// ==================================================
+// 7. WORKER
 // ==================================================
 
 export default {
@@ -187,10 +215,12 @@ export default {
 
 
     // ==================================================
-    // 1. API HEALTH
+    // API HEALTH CHECK
     // ==================================================
 
-    if (url.pathname === "/api/health") {
+    if (
+      url.pathname === "/api/health"
+    ) {
 
       return Response.json({
         ok: true,
@@ -202,15 +232,19 @@ export default {
 
 
     // ==================================================
-    // 2. D1 DATABASE TEST
+    // D1 DATABASE TEST
     // ==================================================
 
-    if (url.pathname === "/api/db-test") {
+    if (
+      url.pathname === "/api/db-test"
+    ) {
 
       try {
 
         const result = await env.DB
-          .prepare("SELECT 1 AS test")
+          .prepare(
+            "SELECT 1 AS test"
+          )
           .first();
 
         return Response.json({
@@ -224,10 +258,13 @@ export default {
         return Response.json(
           {
             ok: false,
-            database: "D1 connection failed",
+            database:
+              "D1 connection failed",
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -236,7 +273,7 @@ export default {
 
 
     // ==================================================
-    // 3. FIRST ADMIN SETUP
+    // FIRST ADMIN SETUP
     // ==================================================
 
     if (
@@ -246,33 +283,41 @@ export default {
 
       try {
 
-        const adminCount = await env.DB
-          .prepare(
-            "SELECT COUNT(*) AS count FROM admins"
-          )
-          .first();
+        const adminCount =
+          await env.DB
+            .prepare(
+              "SELECT COUNT(*) AS count FROM admins"
+            )
+            .first();
 
         const existingAdmins =
-          Number(adminCount?.count || 0);
+          Number(
+            adminCount?.count || 0
+          );
 
 
-        // Setup only allowed when there are no admins
+        // Admin already exists
         if (existingAdmins > 0) {
 
           return Response.json(
             {
               ok: false,
-              error: "Admin setup is already completed."
+              error:
+                "Admin setup is already completed."
             },
-            { status: 403 }
+            {
+              status: 403
+            }
           );
 
         }
 
 
-        // Check setup secret
+        // Check setup key
         const setupKey =
-          request.headers.get("X-Admin-Setup-Key");
+          request.headers.get(
+            "X-Admin-Setup-Key"
+          );
 
 
         if (
@@ -283,39 +328,59 @@ export default {
           return Response.json(
             {
               ok: false,
-              error: "Invalid setup key."
+              error:
+                "Invalid setup key."
             },
-            { status: 401 }
+            {
+              status: 401
+            }
           );
 
         }
 
 
+        // Read JSON
         let body;
 
         try {
 
-          body = await request.json();
+          body =
+            await request.json();
 
         } catch {
 
           return Response.json(
             {
               ok: false,
-              error: "Invalid JSON request body."
+              error:
+                "Invalid JSON request body."
             },
-            { status: 400 }
+            {
+              status: 400
+            }
           );
 
         }
 
 
-        const name = body?.name?.trim();
-        const email = body?.email?.trim().toLowerCase();
-        const password = body?.password;
+        const name =
+          body?.name?.trim();
+
+        const email =
+          body?.email
+            ?.trim()
+            .toLowerCase();
+
+        const password =
+          body?.password;
 
 
-        if (!name || !email || !password) {
+        // Validate
+        if (
+          !name ||
+          !email ||
+          !password
+        ) {
 
           return Response.json(
             {
@@ -323,13 +388,17 @@ export default {
               error:
                 "Name, email and password are required."
             },
-            { status: 400 }
+            {
+              status: 400
+            }
           );
 
         }
 
 
-        if (password.length < 10) {
+        if (
+          password.length < 10
+        ) {
 
           return Response.json(
             {
@@ -337,43 +406,57 @@ export default {
               error:
                 "Password must be at least 10 characters."
             },
-            { status: 400 }
+            {
+              status: 400
+            }
           );
 
         }
 
 
+        // Hash password
         const passwordHash =
-          await hashPassword(password);
+          await hashPassword(
+            password
+          );
 
 
-        const result = await env.DB
-          .prepare(`
-            INSERT INTO admins
-            (
+        // Create admin
+        const result =
+          await env.DB
+            .prepare(`
+              INSERT INTO admins
+              (
+                name,
+                email,
+                password_hash,
+                role,
+                status
+              )
+              VALUES
+              (
+                ?,
+                ?,
+                ?,
+                'admin',
+                'active'
+              )
+            `)
+            .bind(
               name,
               email,
-              password_hash,
-              role,
-              status
+              passwordHash
             )
-            VALUES (?, ?, ?, 'admin', 'active')
-          `)
-          .bind(
-            name,
-            email,
-            passwordHash
-          )
-          .run();
+            .run();
 
 
         return Response.json({
           ok: true,
           message:
             "Admin account created successfully.",
-          admin_id: result.meta.last_row_id
+          admin_id:
+            result.meta.last_row_id
         });
-
 
       } catch (error) {
 
@@ -382,7 +465,9 @@ export default {
             ok: false,
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -391,7 +476,7 @@ export default {
 
 
     // ==================================================
-    // 4. ADMIN LOGIN
+    // ADMIN LOGIN
     // ==================================================
 
     if (
@@ -405,67 +490,86 @@ export default {
 
         try {
 
-          body = await request.json();
+          body =
+            await request.json();
 
         } catch {
 
           return Response.json(
             {
               ok: false,
-              error: "Invalid JSON request body."
+              error:
+                "Invalid JSON request body."
             },
-            { status: 400 }
+            {
+              status: 400
+            }
           );
 
         }
 
 
         const email =
-          body?.email?.trim().toLowerCase();
+          body?.email
+            ?.trim()
+            .toLowerCase();
 
         const password =
           body?.password;
 
 
-        if (!email || !password) {
+        if (
+          !email ||
+          !password
+        ) {
 
           return Response.json(
             {
               ok: false,
-              error: "Email and password are required."
+              error:
+                "Email and password are required."
             },
-            { status: 400 }
+            {
+              status: 400
+            }
           );
 
         }
 
 
         // Find admin
-        const admin = await env.DB
-          .prepare(`
-            SELECT
-              id,
-              name,
-              email,
-              password_hash,
-              role,
-              status
-            FROM admins
-            WHERE email = ?
-            LIMIT 1
-          `)
-          .bind(email)
-          .first();
+        const admin =
+          await env.DB
+            .prepare(`
+              SELECT
+                id,
+                name,
+                email,
+                password_hash,
+                role,
+                status
+              FROM admins
+              WHERE email = ?
+              LIMIT 1
+            `)
+            .bind(email)
+            .first();
 
 
-        if (!admin || admin.status !== "active") {
+        if (
+          !admin ||
+          admin.status !== "active"
+        ) {
 
           return Response.json(
             {
               ok: false,
-              error: "Invalid email or password."
+              error:
+                "Invalid email or password."
             },
-            { status: 401 }
+            {
+              status: 401
+            }
           );
 
         }
@@ -484,30 +588,47 @@ export default {
           return Response.json(
             {
               ok: false,
-              error: "Invalid email or password."
+              error:
+                "Invalid email or password."
             },
-            { status: 401 }
+            {
+              status: 401
+            }
           );
 
         }
 
 
-        // Generate secure session token
+        // Remove expired sessions
+        await env.DB
+          .prepare(`
+            DELETE FROM admin_sessions
+            WHERE expires_at <= CURRENT_TIMESTAMP
+          `)
+          .run();
+
+
+        // Generate session
         const sessionToken =
           generateSessionToken();
 
         const sessionTokenHash =
-          await hashToken(sessionToken);
+          await hashToken(
+            sessionToken
+          );
 
 
-        // Session expires in 7 days
+        // 7-day expiry
         const expiresAt =
-          new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
-          ).toISOString();
+          sqliteDate(
+            new Date(
+              Date.now() +
+              7 * 24 * 60 * 60 * 1000
+            )
+          );
 
 
-        // Store hashed session token
+        // Save session
         await env.DB
           .prepare(`
             INSERT INTO admin_sessions
@@ -516,7 +637,12 @@ export default {
               session_token_hash,
               expires_at
             )
-            VALUES (?, ?, ?)
+            VALUES
+            (
+              ?,
+              ?,
+              ?
+            )
           `)
           .bind(
             admin.id,
@@ -526,9 +652,11 @@ export default {
           .run();
 
 
-        // Secure session cookie
+        // Secure cookie
         const cookie = [
-          `canvo_admin_session=${encodeURIComponent(sessionToken)}`,
+          `canvo_admin_session=${encodeURIComponent(
+            sessionToken
+          )}`,
           "Path=/",
           "HttpOnly",
           "Secure",
@@ -540,7 +668,8 @@ export default {
         return new Response(
           JSON.stringify({
             ok: true,
-            message: "Login successful.",
+            message:
+              "Login successful.",
             admin: {
               id: admin.id,
               name: admin.name,
@@ -551,12 +680,13 @@ export default {
           {
             status: 200,
             headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": cookie
+              "Content-Type":
+                "application/json",
+              "Set-Cookie":
+                cookie
             }
           }
         );
-
 
       } catch (error) {
 
@@ -565,7 +695,9 @@ export default {
             ok: false,
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -574,7 +706,7 @@ export default {
 
 
     // ==================================================
-    // 5. CHECK CURRENT ADMIN SESSION
+    // CURRENT ADMIN SESSION
     // ==================================================
 
     if (
@@ -598,37 +730,46 @@ export default {
               ok: false,
               authenticated: false
             },
-            { status: 401 }
+            {
+              status: 401
+            }
           );
 
         }
 
 
         const sessionTokenHash =
-          await hashToken(sessionToken);
+          await hashToken(
+            sessionToken
+          );
 
 
-        const session = await env.DB
-          .prepare(`
-            SELECT
-              admin_sessions.id AS session_id,
-              admin_sessions.expires_at,
-              admins.id,
-              admins.name,
-              admins.email,
-              admins.role,
-              admins.status
-            FROM admin_sessions
-            INNER JOIN admins
-              ON admins.id = admin_sessions.admin_id
-            WHERE
-              admin_sessions.session_token_hash = ?
-              AND admin_sessions.expires_at > CURRENT_TIMESTAMP
-              AND admins.status = 'active'
-            LIMIT 1
-          `)
-          .bind(sessionTokenHash)
-          .first();
+        const session =
+          await env.DB
+            .prepare(`
+              SELECT
+                admin_sessions.id AS session_id,
+                admin_sessions.expires_at,
+                admins.id,
+                admins.name,
+                admins.email,
+                admins.role,
+                admins.status
+              FROM admin_sessions
+              INNER JOIN admins
+                ON admins.id =
+                   admin_sessions.admin_id
+              WHERE
+                admin_sessions.session_token_hash = ?
+                AND admin_sessions.expires_at >
+                    CURRENT_TIMESTAMP
+                AND admins.status = 'active'
+              LIMIT 1
+            `)
+            .bind(
+              sessionTokenHash
+            )
+            .first();
 
 
         if (!session) {
@@ -638,7 +779,9 @@ export default {
               ok: false,
               authenticated: false
             },
-            { status: 401 }
+            {
+              status: 401
+            }
           );
 
         }
@@ -653,9 +796,9 @@ export default {
             email: session.email,
             role: session.role
           },
-          expires_at: session.expires_at
+          expires_at:
+            session.expires_at
         });
-
 
       } catch (error) {
 
@@ -664,7 +807,9 @@ export default {
             ok: false,
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -673,7 +818,7 @@ export default {
 
 
     // ==================================================
-    // 6. ADMIN LOGOUT
+    // ADMIN LOGOUT
     // ==================================================
 
     if (
@@ -693,7 +838,9 @@ export default {
         if (sessionToken) {
 
           const sessionTokenHash =
-            await hashToken(sessionToken);
+            await hashToken(
+              sessionToken
+            );
 
 
           await env.DB
@@ -701,7 +848,9 @@ export default {
               DELETE FROM admin_sessions
               WHERE session_token_hash = ?
             `)
-            .bind(sessionTokenHash)
+            .bind(
+              sessionTokenHash
+            )
             .run();
 
         }
@@ -720,17 +869,19 @@ export default {
         return new Response(
           JSON.stringify({
             ok: true,
-            message: "Logged out successfully."
+            message:
+              "Logged out successfully."
           }),
           {
             status: 200,
             headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": cookie
+              "Content-Type":
+                "application/json",
+              "Set-Cookie":
+                cookie
             }
           }
         );
-
 
       } catch (error) {
 
@@ -739,7 +890,9 @@ export default {
             ok: false,
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -748,7 +901,7 @@ export default {
 
 
     // ==================================================
-    // 7. GET ACTIVE PRODUCTS
+    // GET ACTIVE PRODUCTS
     // ==================================================
 
     if (
@@ -758,31 +911,31 @@ export default {
 
       try {
 
-        const { results } = await env.DB
-          .prepare(`
-            SELECT
-              id,
-              name,
-              slug,
-              category,
-              description,
-              price,
-              old_price,
-              image_url,
-              status,
-              created_at
-            FROM products
-            WHERE status = 'active'
-            ORDER BY id DESC
-          `)
-          .all();
+        const { results } =
+          await env.DB
+            .prepare(`
+              SELECT
+                id,
+                name,
+                slug,
+                category,
+                description,
+                price,
+                old_price,
+                image_url,
+                status,
+                created_at
+              FROM products
+              WHERE status = 'active'
+              ORDER BY id DESC
+            `)
+            .all();
 
 
         return Response.json({
           ok: true,
           products: results
         });
-
 
       } catch (error) {
 
@@ -791,7 +944,9 @@ export default {
             ok: false,
             error: error.message
           },
-          { status: 500 }
+          {
+            status: 500
+          }
         );
 
       }
@@ -800,10 +955,11 @@ export default {
 
 
     // ==================================================
-    // 8. SERVE CANVO WEBSITE
+    // SERVE CANVO WEBSITE
     // ==================================================
 
     return env.ASSETS.fetch(request);
 
   }
+
 };
