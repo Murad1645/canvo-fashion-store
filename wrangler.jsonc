@@ -1,8 +1,20 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "canvo-fashion-store",
+  "main": "./worker.js",
   "compatibility_date": "2026-10-02",
   "assets": {
-    "directory": "./"
-  }
+    "directory": "./",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "canvo-db",
+      "database_id": "920da9b5-cd15-4efa-8676-f7694a354945"
+    }
+  ]
 }
