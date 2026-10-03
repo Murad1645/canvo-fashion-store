@@ -13,6 +13,30 @@ export default {
       });
     }
 
+    // Real D1 database test
+    if (url.pathname === "/api/db-test") {
+      try {
+        const result = await env.DB
+          .prepare("SELECT 1 AS test")
+          .first();
+
+        return Response.json({
+          ok: true,
+          database: "CANVO D1 connected",
+          result: result
+        });
+      } catch (error) {
+        return Response.json(
+          {
+            ok: false,
+            database: "D1 connection failed",
+            error: error.message
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     // Serve the existing CANVO website
     return env.ASSETS.fetch(request);
   }
