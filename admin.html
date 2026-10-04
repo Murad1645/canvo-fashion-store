@@ -12,7 +12,6 @@
 
   <title>CANVO Admin Dashboard</title>
 
-
   <style>
 
     * {
@@ -21,17 +20,11 @@
       padding: 0;
     }
 
-
     body {
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
+      font-family: Arial, Helvetica, sans-serif;
       background: #f5f6f8;
       color: #172033;
     }
-
 
     /* =========================================
        SIDEBAR
@@ -39,113 +32,74 @@
 
     .sidebar {
       position: fixed;
-
       left: 0;
       top: 0;
-
       width: 240px;
       height: 100vh;
-
       background: #07111f;
       color: white;
-
       padding: 28px 18px;
-
       z-index: 100;
     }
-
 
     .brand {
       text-align: center;
       margin-bottom: 35px;
     }
 
-
     .brand h1 {
       color: #d4af37;
-
       font-size: 30px;
-
       letter-spacing: 5px;
     }
 
-
     .brand p {
       color: #aeb8c5;
-
       font-size: 11px;
-
       letter-spacing: 2px;
-
       margin-top: 5px;
     }
 
-
     .nav {
       display: flex;
-
       flex-direction: column;
-
       gap: 8px;
     }
 
-
     .nav button {
       width: 100%;
-
       border: none;
-
       background: transparent;
-
       color: #c8d0da;
-
       padding: 13px 15px;
-
       border-radius: 8px;
-
       text-align: left;
-
       font-size: 14px;
-
       cursor: pointer;
     }
-
 
     .nav button:hover,
     .nav button.active {
       background: #16263a;
-
       color: white;
     }
 
-
     .logout-button {
       position: absolute;
-
       bottom: 25px;
-
       left: 18px;
-
       width: calc(100% - 36px);
-
       padding: 12px;
-
       border: 1px solid #39495d;
-
       background: transparent;
-
       color: #d8dee7;
-
       border-radius: 8px;
-
       cursor: pointer;
     }
-
 
     .logout-button:hover {
       background: #1b2a3e;
     }
-
 
     /* =========================================
        MAIN
@@ -153,51 +107,36 @@
 
     .main {
       margin-left: 240px;
-
       min-height: 100vh;
-
       padding: 30px;
     }
 
-
     .topbar {
       display: flex;
-
       justify-content: space-between;
-
       align-items: center;
-
       margin-bottom: 30px;
     }
 
-
     .topbar h2 {
       font-size: 28px;
-
       color: #111827;
     }
-
 
     .admin-info {
       text-align: right;
     }
 
-
     .admin-name {
       font-weight: 600;
-
       color: #172033;
     }
 
-
     .admin-email {
       font-size: 12px;
-
       color: #7b8796;
-
       margin-top: 3px;
     }
-
 
     /* =========================================
        STATS
@@ -205,101 +144,65 @@
 
     .stats {
       display: grid;
-
-      grid-template-columns:
-        repeat(4, 1fr);
-
+      grid-template-columns: repeat(4, 1fr);
       gap: 18px;
-
       margin-bottom: 30px;
     }
 
-
     .stat-card {
       background: white;
-
       border-radius: 12px;
-
       padding: 22px;
-
-      box-shadow:
-        0 3px 15px
-        rgba(0, 0, 0, 0.05);
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
     }
-
 
     .stat-label {
       font-size: 13px;
-
       color: #7b8796;
-
       margin-bottom: 10px;
     }
 
-
     .stat-value {
       font-size: 30px;
-
       font-weight: 700;
-
       color: #111827;
     }
 
-
     /* =========================================
-       CONTENT CARD
+       CONTENT
        ========================================= */
 
     .content-card {
       background: white;
-
       border-radius: 12px;
-
       padding: 24px;
-
-      box-shadow:
-        0 3px 15px
-        rgba(0, 0, 0, 0.05);
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
     }
-
 
     .content-header {
       display: flex;
-
       justify-content: space-between;
-
       align-items: center;
-
       margin-bottom: 20px;
     }
-
 
     .content-header h3 {
       font-size: 20px;
     }
 
-
     .add-button {
       border: none;
-
       background: #07111f;
-
       color: white;
-
       padding: 11px 18px;
-
       border-radius: 7px;
-
       cursor: pointer;
-
       font-weight: 600;
     }
-
 
     .add-button:hover {
       background: #16263a;
     }
-
 
     /* =========================================
        TABLE
@@ -307,105 +210,68 @@
 
     .table-wrapper {
       width: 100%;
-
       overflow-x: auto;
     }
 
-
     table {
       width: 100%;
-
       border-collapse: collapse;
-
-      min-width: 850px;
+      min-width: 900px;
     }
-
 
     th {
       text-align: left;
-
       font-size: 12px;
-
       color: #7b8796;
-
       text-transform: uppercase;
-
       letter-spacing: 0.5px;
-
       padding: 13px;
-
-      border-bottom:
-        1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
     }
-
 
     td {
       padding: 15px 13px;
-
-      border-bottom:
-        1px solid #eef0f3;
-
+      border-bottom: 1px solid #eef0f3;
       font-size: 14px;
     }
 
-
     .product-image {
       width: 50px;
-
       height: 50px;
-
       object-fit: cover;
-
       border-radius: 7px;
-
       background: #f1f3f5;
     }
 
-
     .status {
       display: inline-block;
-
       padding: 5px 9px;
-
       border-radius: 20px;
-
       font-size: 11px;
-
       font-weight: 600;
     }
 
-
     .status.active {
       background: #eaf8f0;
-
       color: #18794e;
     }
 
-
     .status.inactive {
       background: #fff0f0;
-
       color: #b42318;
     }
 
-
     .empty {
       text-align: center;
-
       padding: 50px 20px;
-
       color: #8a95a3;
     }
 
-
     .loading {
       text-align: center;
-
       padding: 40px;
-
       color: #7b8796;
     }
-
 
     /* =========================================
        ACTION BUTTONS
@@ -413,44 +279,40 @@
 
     .action-button {
       border: none;
-
-      padding: 7px 12px;
-
+      padding: 7px 11px;
       border-radius: 6px;
-
       font-size: 12px;
-
       font-weight: 600;
-
       cursor: pointer;
-
       margin-right: 5px;
     }
 
-
     .edit-button {
       background: #16263a;
-
       color: white;
     }
-
 
     .edit-button:hover {
       background: #243b55;
     }
 
+    .variant-button {
+      background: #e8eef6;
+      color: #16263a;
+    }
+
+    .variant-button:hover {
+      background: #dbe5f0;
+    }
 
     .delete-button {
       background: #f3d6d6;
-
       color: #9b1c1c;
     }
-
 
     .delete-button:hover {
       background: #e8bcbc;
     }
-
 
     /* =========================================
        MODAL
@@ -458,113 +320,85 @@
 
     .modal {
       display: none;
-
       position: fixed;
-
       inset: 0;
-
-      background:
-        rgba(0, 0, 0, 0.55);
-
+      background: rgba(0, 0, 0, 0.55);
       z-index: 1000;
-
       align-items: center;
-
       justify-content: center;
-
       padding: 20px;
     }
-
 
     .modal.show {
       display: flex;
     }
 
-
     .modal-box {
       width: 100%;
-
       max-width: 650px;
-
       max-height: 90vh;
-
       overflow-y: auto;
-
       background: white;
-
       border-radius: 14px;
-
       padding: 28px;
-
-      box-shadow:
-        0 20px 60px
-        rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     }
 
+    .modal-box.large {
+      max-width: 900px;
+    }
 
     .modal-header {
       display: flex;
-
       justify-content: space-between;
-
       align-items: center;
-
       margin-bottom: 22px;
     }
-
 
     .modal-header h3 {
       font-size: 22px;
     }
 
+    .modal-header p {
+      color: #7b8796;
+      font-size: 13px;
+      margin-top: 4px;
+    }
 
     .close-modal {
       border: none;
-
       background: transparent;
-
       font-size: 28px;
-
       cursor: pointer;
-
       color: #6b7280;
     }
 
+    /* =========================================
+       FORMS
+       ========================================= */
 
     .form-group {
       margin-bottom: 17px;
     }
 
-
     .form-group label {
       display: block;
-
       margin-bottom: 7px;
-
       font-size: 13px;
-
       font-weight: 600;
-
       color: #172033;
     }
-
 
     .form-group input,
     .form-group textarea,
     .form-group select {
       width: 100%;
-
       padding: 12px 13px;
-
       border: 1px solid #d5dbe3;
-
       border-radius: 7px;
-
       font-size: 14px;
-
       outline: none;
     }
-
 
     .form-group input:focus,
     .form-group textarea:focus,
@@ -572,114 +406,103 @@
       border-color: #16263a;
     }
 
-
     .form-group textarea {
       min-height: 100px;
-
       resize: vertical;
     }
 
-
     .form-row {
       display: grid;
-
-      grid-template-columns:
-        1fr 1fr;
-
+      grid-template-columns: 1fr 1fr;
       gap: 15px;
     }
 
-
     .modal-actions {
       display: flex;
-
       justify-content: flex-end;
-
       gap: 10px;
-
       margin-top: 22px;
     }
 
-
     .cancel-button {
       border: 1px solid #d5dbe3;
-
       background: white;
-
       color: #172033;
-
       padding: 11px 18px;
-
       border-radius: 7px;
-
       cursor: pointer;
     }
-
-
-    .cancel-button:hover {
-      background: #f5f6f8;
-    }
-
 
     .save-button {
       border: none;
-
       background: #07111f;
-
       color: white;
-
       padding: 11px 20px;
-
       border-radius: 7px;
-
       cursor: pointer;
-
       font-weight: 600;
     }
 
-
-    .save-button:hover {
-      background: #16263a;
-    }
-
-
     .save-button:disabled {
       opacity: 0.6;
-
       cursor: not-allowed;
     }
 
-
     .form-message {
       margin-top: 15px;
-
       padding: 10px 12px;
-
       border-radius: 7px;
-
       display: none;
-
       font-size: 13px;
     }
 
-
     .form-message.success {
       display: block;
-
       background: #eaf8f0;
-
       color: #18794e;
     }
 
-
     .form-message.error {
       display: block;
-
       background: #fff0f0;
-
       color: #b42318;
     }
 
+    /* =========================================
+       VARIANT TABLE
+       ========================================= */
+
+    .variant-table-wrapper {
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+
+    .variant-table {
+      min-width: 650px;
+    }
+
+    .stock-number {
+      font-weight: 700;
+    }
+
+    .stock-low {
+      color: #b54708;
+    }
+
+    .stock-out {
+      color: #b42318;
+    }
+
+    .variant-add-area {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .variant-add-area h4 {
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
 
     /* =========================================
        MOBILE
@@ -696,77 +519,57 @@
       }
 
       .stats {
-        grid-template-columns:
-          repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr);
       }
 
     }
-
 
     @media (max-width: 650px) {
 
       .sidebar {
         position: relative;
-
         width: 100%;
-
         height: auto;
-
         padding: 18px;
       }
-
 
       .brand {
         margin-bottom: 15px;
       }
 
-
       .nav {
         flex-direction: row;
-
         overflow-x: auto;
       }
-
 
       .nav button {
         white-space: nowrap;
       }
 
-
       .logout-button {
         position: static;
-
         width: 100%;
-
         margin-top: 15px;
       }
 
-
       .main {
         margin-left: 0;
-
         padding: 18px;
       }
 
-
       .topbar {
         align-items: flex-start;
-
         gap: 15px;
-
         flex-direction: column;
       }
-
 
       .admin-info {
         text-align: left;
       }
 
-
       .stats {
         grid-template-columns: 1fr;
       }
-
 
       .form-row {
         grid-template-columns: 1fr;
@@ -806,13 +609,11 @@
         Dashboard
       </button>
 
-
       <button
         onclick="showSection('products')"
       >
         Products
       </button>
-
 
       <button
         onclick="showSection('orders')"
@@ -820,13 +621,11 @@
         Orders
       </button>
 
-
       <button
         onclick="showSection('customers')"
       >
         Customers
       </button>
-
 
       <button
         onclick="showSection('stock')"
@@ -855,14 +654,10 @@
   <main class="main">
 
 
-    <!-- TOP BAR -->
-
     <div class="topbar">
 
       <div>
-
         <h2>Dashboard</h2>
-
       </div>
 
 
@@ -894,11 +689,10 @@
 
     <section class="stats">
 
-
       <div class="stat-card">
 
         <div class="stat-label">
-          Total Products
+          Active Products
         </div>
 
         <div
@@ -958,7 +752,6 @@
 
       </div>
 
-
     </section>
 
 
@@ -972,11 +765,9 @@
       id="productsSection"
     >
 
-
       <div class="content-header">
 
         <h3>Products</h3>
-
 
         <button
           class="add-button"
@@ -1032,7 +823,6 @@
 
       </div>
 
-
     </section>
 
 
@@ -1041,7 +831,7 @@
 
 
   <!-- =========================================
-       ADD / EDIT PRODUCT MODAL
+       PRODUCT MODAL
        ========================================= -->
 
   <div
@@ -1051,13 +841,11 @@
 
     <div class="modal-box">
 
-
       <div class="modal-header">
 
         <h3>
           Add New Product
         </h3>
-
 
         <button
           class="close-modal"
@@ -1070,11 +858,8 @@
       </div>
 
 
-
       <form id="productForm">
 
-
-        <!-- PRODUCT NAME -->
 
         <div class="form-group">
 
@@ -1092,9 +877,6 @@
         </div>
 
 
-
-        <!-- CATEGORY + STATUS -->
-
         <div class="form-row">
 
 
@@ -1103,7 +885,6 @@
             <label for="productCategory">
               Category *
             </label>
-
 
             <select
               id="productCategory"
@@ -1139,13 +920,11 @@
           </div>
 
 
-
           <div class="form-group">
 
             <label for="productStatus">
               Status
             </label>
-
 
             <select id="productStatus">
 
@@ -1161,12 +940,8 @@
 
           </div>
 
-
         </div>
 
-
-
-        <!-- PRICE + OLD PRICE -->
 
         <div class="form-row">
 
@@ -1176,7 +951,6 @@
             <label for="productPrice">
               Price (৳) *
             </label>
-
 
             <input
               type="number"
@@ -1190,13 +964,11 @@
           </div>
 
 
-
           <div class="form-group">
 
             <label for="productOldPrice">
               Old Price (৳)
             </label>
-
 
             <input
               type="number"
@@ -1208,19 +980,14 @@
 
           </div>
 
-
         </div>
 
-
-
-        <!-- IMAGE -->
 
         <div class="form-group">
 
           <label for="productImage">
             Image URL
           </label>
-
 
           <input
             type="url"
@@ -1231,15 +998,11 @@
         </div>
 
 
-
-        <!-- DESCRIPTION -->
-
         <div class="form-group">
 
           <label for="productDescription">
             Description
           </label>
-
 
           <textarea
             id="productDescription"
@@ -1249,20 +1012,13 @@
         </div>
 
 
-
-        <!-- MESSAGE -->
-
         <div
           id="productFormMessage"
           class="form-message"
         ></div>
 
 
-
-        <!-- ACTIONS -->
-
         <div class="modal-actions">
-
 
           <button
             type="button"
@@ -1272,7 +1028,6 @@
             Cancel
           </button>
 
-
           <button
             type="submit"
             class="save-button"
@@ -1281,12 +1036,219 @@
             Save Product
           </button>
 
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- =========================================
+       VARIANTS MODAL
+       ========================================= -->
+
+  <div
+    class="modal"
+    id="variantsModal"
+  >
+
+    <div class="modal-box large">
+
+
+      <div class="modal-header">
+
+        <div>
+
+          <h3 id="variantsTitle">
+            Product Variants
+          </h3>
+
+          <p id="variantsProductName">
+            Loading...
+          </p>
 
         </div>
 
 
-      </form>
+        <button
+          class="close-modal"
+          onclick="closeVariantsModal()"
+          type="button"
+        >
+          ×
+        </button>
 
+      </div>
+
+
+
+      <!-- VARIANT LIST -->
+
+      <div class="variant-table-wrapper">
+
+        <table class="variant-table">
+
+          <thead>
+
+            <tr>
+
+              <th>Size</th>
+
+              <th>Color</th>
+
+              <th>SKU</th>
+
+              <th>Stock</th>
+
+              <th>Actions</th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="variantsTable">
+
+            <tr>
+
+              <td
+                colspan="5"
+                class="loading"
+              >
+                Loading variants...
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+
+      <!-- ADD VARIANT -->
+
+      <div class="variant-add-area">
+
+        <h4 id="variantFormTitle">
+          Add Variant
+        </h4>
+
+
+        <form id="variantForm">
+
+
+          <div class="form-row">
+
+
+            <div class="form-group">
+
+              <label for="variantSize">
+                Size
+              </label>
+
+              <input
+                type="text"
+                id="variantSize"
+                placeholder="Example: 42"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="variantColor">
+                Color
+              </label>
+
+              <input
+                type="text"
+                id="variantColor"
+                placeholder="Example: Black"
+              >
+
+            </div>
+
+          </div>
+
+
+          <div class="form-row">
+
+
+            <div class="form-group">
+
+              <label for="variantSku">
+                SKU
+              </label>
+
+              <input
+                type="text"
+                id="variantSku"
+                placeholder="Example: CR-BLK-42"
+              >
+
+            </div>
+
+
+            <div class="form-group">
+
+              <label for="variantStock">
+                Stock Quantity *
+              </label>
+
+              <input
+                type="number"
+                id="variantStock"
+                min="0"
+                step="1"
+                value="0"
+                required
+              >
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="variantFormMessage"
+            class="form-message"
+          ></div>
+
+
+          <div class="modal-actions">
+
+            <button
+              type="button"
+              class="cancel-button"
+              id="cancelVariantEditButton"
+              onclick="resetVariantForm()"
+              style="display:none;"
+            >
+              Cancel Edit
+            </button>
+
+
+            <button
+              type="submit"
+              class="save-button"
+              id="saveVariantButton"
+            >
+              Add Variant
+            </button>
+
+          </div>
+
+
+        </form>
+
+      </div>
 
     </div>
 
@@ -1298,7 +1260,7 @@
 
 
     // =========================================
-    // CHECK ADMIN SESSION
+    // ADMIN SESSION
     // =========================================
 
     async function checkAdminSession() {
@@ -1333,17 +1295,13 @@
 
 
         document
-          .getElementById(
-            "adminName"
-          )
+          .getElementById("adminName")
           .textContent =
             data.admin.name;
 
 
         document
-          .getElementById(
-            "adminEmail"
-          )
+          .getElementById("adminEmail")
           .textContent =
             data.admin.email;
 
@@ -1365,293 +1323,368 @@
     }
 
 
-// =========================================
-// LOAD PRODUCTS
-// =========================================
 
-async function loadProducts() {
+    // =========================================
+    // LOAD PRODUCTS
+    // =========================================
 
-  const table =
-    document.getElementById(
-      "productsTable"
-    );
+    async function loadProducts() {
+
+      const table =
+        document.getElementById(
+          "productsTable"
+        );
 
 
-  try {
+      try {
 
-    /*
-     * IMPORTANT:
-     * Use admin endpoint here so that
-     * both active and inactive products
-     * are visible in the admin panel.
-     */
+        const response =
+          await fetch(
+            "/api/admin/products",
+            {
+              method: "GET",
+              credentials: "include"
+            }
+          );
 
-    const response =
-      await fetch(
-        "/api/admin/products",
-        {
-          method: "GET",
-          credentials: "include"
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to load products."
+          );
+
         }
-      );
 
 
-    const data =
-      await response.json();
+        const products =
+          data.products || [];
 
 
-    if (
-      !response.ok ||
-      !data.ok
-    ) {
+        /*
+         * Count active products only.
+         */
 
-      throw new Error(
-        data.error ||
-        "Unable to load products."
-      );
-
-    }
+        const activeProducts =
+          products.filter(
+            product =>
+              product.status === "active"
+          );
 
 
-    const products =
-      data.products || [];
+        document
+          .getElementById(
+            "productCount"
+          )
+          .textContent =
+            activeProducts.length;
 
 
-    /*
-     * =========================================
-     * COUNT ACTIVE PRODUCTS ONLY
-     * =========================================
-     *
-     * Inactive products remain visible
-     * in the admin panel, but they are
-     * not counted as active products.
-     */
+        if (
+          products.length === 0
+        ) {
 
-    const activeProducts =
-      products.filter(
-        product =>
-          product.status === "active"
-      );
-
-
-    document
-      .getElementById(
-        "productCount"
-      )
-      .textContent =
-        activeProducts.length;
-
-
-    /*
-     * =========================================
-     * NO PRODUCTS
-     * =========================================
-     */
-
-    if (
-      products.length === 0
-    ) {
-
-      table.innerHTML = `
-
-        <tr>
-
-          <td
-            colspan="6"
-            class="empty"
-          >
-
-            No products found.
-
-            <br>
-
-            Add your first product
-            from the admin panel.
-
-          </td>
-
-        </tr>
-
-      `;
-
-      return;
-
-    }
-
-
-
-    /*
-     * =========================================
-     * DISPLAY PRODUCTS
-     * =========================================
-     */
-
-    table.innerHTML =
-
-      products
-        .map(
-          product => `
+          table.innerHTML = `
 
             <tr>
 
+              <td
+                colspan="6"
+                class="empty"
+              >
 
-              <!-- IMAGE -->
+                No products found.
 
-              <td>
+                <br>
 
-                ${
-                  product.image_url
-
-                    ? `
-
-                      <img
-                        src="${escapeHtml(
-                          product.image_url
-                        )}"
-                        class="product-image"
-                        alt="${escapeHtml(
-                          product.name
-                        )}"
-                      >
-
-                    `
-
-                    : `
-
-                      <div
-                        class="product-image"
-                      ></div>
-
-                    `
-                }
+                Add your first product
+                from the admin panel.
 
               </td>
-
-
-
-              <!-- PRODUCT -->
-
-              <td>
-
-                <strong>
-
-                  ${escapeHtml(
-                    product.name
-                  )}
-
-                </strong>
-
-              </td>
-
-
-
-              <!-- CATEGORY -->
-
-              <td>
-
-                ${escapeHtml(
-                  product.category
-                )}
-
-              </td>
-
-
-
-              <!-- PRICE -->
-
-              <td>
-
-                ৳${Number(
-                  product.price
-                ).toLocaleString()}
-
-              </td>
-
-
-
-              <!-- STATUS -->
-
-              <td>
-
-                <span
-                  class="status ${
-                    product.status ===
-                    "active"
-                      ? "active"
-                      : "inactive"
-                  }"
-                >
-
-                  ${escapeHtml(
-                    product.status
-                  )}
-
-                </span>
-
-              </td>
-
-
-
-              <!-- ACTIONS -->
-
-              <td>
-
-                <button
-                  type="button"
-                  class="action-button edit-button"
-                  onclick="editProduct(${Number(
-                    product.id
-                  )})"
-                >
-                  Edit
-                </button>
-
-
-                <button
-                  type="button"
-                  class="action-button delete-button"
-                  onclick="deleteProduct(${Number(
-                    product.id
-                  )})"
-                >
-                  Delete
-                </button>
-
-              </td>
-
 
             </tr>
 
-          `
-        )
-        .join("");
+          `;
+
+          updateStockCount();
+
+          return;
+
+        }
 
 
-  } catch (error) {
+        table.innerHTML =
 
-    console.error(error);
+          products
+            .map(
+              product => `
+
+                <tr>
 
 
-    table.innerHTML = `
+                  <td>
 
-      <tr>
+                    ${
+                      product.image_url
 
-        <td
-          colspan="6"
-          class="empty"
-        >
+                        ? `
 
-          Failed to load products.
+                          <img
+                            src="${escapeHtml(
+                              product.image_url
+                            )}"
+                            class="product-image"
+                            alt="${escapeHtml(
+                              product.name
+                            )}"
+                          >
 
-        </td>
+                        `
 
-      </tr>
+                        : `
 
-    `;
+                          <div
+                            class="product-image"
+                          ></div>
 
-  }
+                        `
+                    }
 
-}
+                  </td>
+
+
+                  <td>
+
+                    <strong>
+
+                      ${escapeHtml(
+                        product.name
+                      )}
+
+                    </strong>
+
+                  </td>
+
+
+                  <td>
+
+                    ${escapeHtml(
+                      product.category
+                    )}
+
+                  </td>
+
+
+                  <td>
+
+                    ৳${Number(
+                      product.price
+                    ).toLocaleString()}
+
+                  </td>
+
+
+                  <td>
+
+                    <span
+                      class="status ${
+                        product.status ===
+                        "active"
+                          ? "active"
+                          : "inactive"
+                      }"
+                    >
+
+                      ${escapeHtml(
+                        product.status
+                      )}
+
+                    </span>
+
+                  </td>
+
+
+                  <td>
+
+                    <button
+                      type="button"
+                      class="action-button edit-button"
+                      onclick="editProduct(${Number(
+                        product.id
+                      )})"
+                    >
+                      Edit
+                    </button>
+
+
+                    <button
+                      type="button"
+                      class="action-button variant-button"
+                      onclick="openVariantsModal(${Number(
+                        product.id
+                      )}, '${escapeHtml(
+                        product.name
+                      )}')"
+                    >
+                      Variants
+                    </button>
+
+
+                    <button
+                      type="button"
+                      class="action-button delete-button"
+                      onclick="deleteProduct(${Number(
+                        product.id
+                      )})"
+                    >
+                      Delete
+                    </button>
+
+                  </td>
+
+
+                </tr>
+
+              `
+            )
+            .join("");
+
+
+        updateStockCount();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        table.innerHTML = `
+
+          <tr>
+
+            <td
+              colspan="6"
+              class="empty"
+            >
+
+              Failed to load products.
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // UPDATE STOCK COUNT
+    // =========================================
+
+    async function updateStockCount() {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/products",
+            {
+              method: "GET",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          return;
+
+        }
+
+
+        let totalStock = 0;
+
+
+        for (
+          const product
+          of data.products || []
+        ) {
+
+          const variantResponse =
+            await fetch(
+              `/api/admin/products/${product.id}/variants`,
+              {
+                method: "GET",
+                credentials: "include"
+              }
+            );
+
+
+          const variantData =
+            await variantResponse.json();
+
+
+          if (
+            variantResponse.ok &&
+            variantData.ok
+          ) {
+
+            for (
+              const variant
+              of variantData.variants || []
+            ) {
+
+              totalStock +=
+                Number(
+                  variant.stock_quantity || 0
+                );
+
+            }
+
+          }
+
+        }
+
+
+        document
+          .getElementById(
+            "stockCount"
+          )
+          .textContent =
+            totalStock;
+
+
+      } catch (error) {
+
+        console.error(
+          "Stock count error:",
+          error
+        );
+
+      }
+
+    }
+
+
 
     // =========================================
     // HTML ESCAPE
@@ -1697,20 +1730,15 @@ async function loadProducts() {
     function showSection(section) {
 
       if (
-        section !==
-        "dashboard"
+        section !== "dashboard"
       ) {
 
         alert(
-
           section
             .charAt(0)
             .toUpperCase() +
-
           section.slice(1) +
-
           " management will be added next."
-
         );
 
       }
@@ -1720,16 +1748,10 @@ async function loadProducts() {
 
 
     // =========================================
-    // OPEN ADD PRODUCT MODAL
+    // PRODUCT MODAL
     // =========================================
 
     function openProductModal() {
-
-      const modal =
-        document.getElementById(
-          "productModal"
-        );
-
 
       const form =
         document.getElementById(
@@ -1737,16 +1759,27 @@ async function loadProducts() {
         );
 
 
-      const title =
-        document.querySelector(
+      form.reset();
+
+      form.removeAttribute(
+        "data-product-id"
+      );
+
+
+      document
+        .querySelector(
           "#productModal .modal-header h3"
-        );
+        )
+        .textContent =
+          "Add New Product";
 
 
-      const button =
-        document.getElementById(
+      document
+        .getElementById(
           "saveProductButton"
-        );
+        )
+        .textContent =
+          "Save Product";
 
 
       const message =
@@ -1755,38 +1788,6 @@ async function loadProducts() {
         );
 
 
-      /*
-       * Reset form
-       */
-
-      form.reset();
-
-
-      /*
-       * Remove edit mode
-       */
-
-      form.removeAttribute(
-        "data-product-id"
-      );
-
-
-      /*
-       * Set Add mode
-       */
-
-      title.textContent =
-        "Add New Product";
-
-
-      button.textContent =
-        "Save Product";
-
-
-      /*
-       * Clear message
-       */
-
       message.className =
         "form-message";
 
@@ -1794,21 +1795,17 @@ async function loadProducts() {
         "";
 
 
-      /*
-       * Show modal
-       */
-
-      modal.classList.add(
-        "show"
-      );
+      document
+        .getElementById(
+          "productModal"
+        )
+        .classList.add(
+          "show"
+        );
 
     }
 
 
-
-    // =========================================
-    // CLOSE PRODUCT MODAL
-    // =========================================
 
     function closeProductModal() {
 
@@ -1833,11 +1830,6 @@ async function loadProducts() {
     ) {
 
       try {
-
-        /*
-         * Get all products from
-         * authenticated admin endpoint.
-         */
 
         const response =
           await fetch(
@@ -1866,10 +1858,6 @@ async function loadProducts() {
         }
 
 
-        /*
-         * Find selected product.
-         */
-
         const product =
           (
             data.products || []
@@ -1891,10 +1879,6 @@ async function loadProducts() {
         }
 
 
-        /*
-         * Open modal.
-         */
-
         document
           .getElementById(
             "productModal"
@@ -1903,10 +1887,6 @@ async function loadProducts() {
             "show"
           );
 
-
-        /*
-         * Fill form.
-         */
 
         document
           .getElementById(
@@ -1965,10 +1945,6 @@ async function loadProducts() {
             "active";
 
 
-        /*
-         * Change modal title.
-         */
-
         document
           .querySelector(
             "#productModal .modal-header h3"
@@ -1976,10 +1952,6 @@ async function loadProducts() {
           .textContent =
             "Edit Product";
 
-
-        /*
-         * Change button.
-         */
 
         document
           .getElementById(
@@ -1989,10 +1961,6 @@ async function loadProducts() {
             "Update Product";
 
 
-        /*
-         * Store product ID.
-         */
-
         document
           .getElementById(
             "productForm"
@@ -2001,171 +1969,13 @@ async function loadProducts() {
             productId;
 
 
-        /*
-         * Clear message.
-         */
-
-        const message =
-          document.getElementById(
-            "productFormMessage"
-          );
-
-        message.className =
-          "form-message";
-
-        message.textContent =
-          "";
-
-
       } catch (error) {
 
         console.error(error);
-
 
         alert(
           error.message ||
           "Failed to load product."
-        );
-
-      }
-
-    }
-
-
-
-    // =========================================
-    // DELETE PRODUCT
-    // =========================================
-
-    async function deleteProduct(
-      productId
-    ) {
-
-      /*
-       * First get product name
-       * for confirmation message.
-       */
-
-      let productName =
-        "this product";
-
-
-      try {
-
-        const listResponse =
-          await fetch(
-            "/api/admin/products",
-            {
-              method: "GET",
-              credentials: "include"
-            }
-          );
-
-
-        const listData =
-          await listResponse.json();
-
-
-        if (
-          listResponse.ok &&
-          listData.ok
-        ) {
-
-          const product =
-            (
-              listData.products || []
-            ).find(
-              item =>
-                Number(item.id) ===
-                Number(productId)
-            );
-
-
-          if (product) {
-
-            productName =
-              product.name;
-
-          }
-
-        }
-
-      } catch (error) {
-
-        console.error(
-          "Could not load product name:",
-          error
-        );
-
-      }
-
-
-      /*
-       * Confirmation.
-       */
-
-      const confirmed =
-        confirm(
-          `Are you sure you want to delete "${productName}"?`
-        );
-
-
-      if (!confirmed) {
-
-        return;
-
-      }
-
-
-      try {
-
-        const response =
-          await fetch(
-            `/api/admin/products/${productId}`,
-            {
-              method: "DELETE",
-              credentials: "include"
-            }
-          );
-
-
-        const data =
-          await response.json();
-
-
-        if (
-          !response.ok ||
-          !data.ok
-        ) {
-
-          throw new Error(
-            data.error ||
-            "Failed to delete product."
-          );
-
-        }
-
-
-        alert(
-          "Product deleted successfully."
-        );
-
-
-        /*
-         * Refresh product table.
-         */
-
-        await loadProducts();
-
-
-      } catch (error) {
-
-        console.error(error);
-
-
-        alert(
-          error.message ||
-          "Something went wrong."
         );
 
       }
@@ -2203,11 +2013,6 @@ async function loadProducts() {
         );
 
 
-      /*
-       * Check whether this is
-       * Add or Edit mode.
-       */
-
       const productId =
         form.dataset.productId;
 
@@ -2215,11 +2020,6 @@ async function loadProducts() {
       const isEditing =
         Boolean(productId);
 
-
-
-      // =======================================
-      // GET FORM VALUES
-      // =======================================
 
       const name =
         document
@@ -2290,11 +2090,6 @@ async function loadProducts() {
           .value;
 
 
-
-      // =======================================
-      // VALIDATION
-      // =======================================
-
       if (
         !name ||
         !category
@@ -2327,32 +2122,6 @@ async function loadProducts() {
       }
 
 
-      if (
-        old_price !== null &&
-        (
-          !Number.isFinite(
-            old_price
-          ) ||
-          old_price < 0
-        )
-      ) {
-
-        message.className =
-          "form-message error";
-
-        message.textContent =
-          "Please enter a valid old price.";
-
-        return;
-
-      }
-
-
-
-      // =======================================
-      // DISABLE BUTTON
-      // =======================================
-
       button.disabled =
         true;
 
@@ -2363,70 +2132,36 @@ async function loadProducts() {
           : "Saving...";
 
 
-
       try {
-
-
-        // =====================================
-        // API URL
-        // =====================================
-
-        const apiUrl =
-          isEditing
-
-            ? `/api/admin/products/${productId}`
-
-            : "/api/admin/products";
-
-
-        // =====================================
-        // HTTP METHOD
-        // =====================================
-
-        const method =
-          isEditing
-            ? "PUT"
-            : "POST";
-
-
-        // =====================================
-        // SEND REQUEST
-        // =====================================
 
         const response =
           await fetch(
-            apiUrl,
+            isEditing
+              ? `/api/admin/products/${productId}`
+              : "/api/admin/products",
             {
-
-              method,
+              method:
+                isEditing
+                  ? "PUT"
+                  : "POST",
 
               credentials:
                 "include",
 
               headers: {
-
                 "Content-Type":
                   "application/json"
-
               },
 
               body:
                 JSON.stringify({
-
                   name,
-
                   category,
-
                   price,
-
                   old_price,
-
                   image_url,
-
                   description,
-
                   status
-
                 })
 
             }
@@ -2437,10 +2172,6 @@ async function loadProducts() {
           await response.json();
 
 
-        // =====================================
-        // CHECK RESPONSE
-        // =====================================
-
         if (
           !response.ok ||
           !data.ok
@@ -2448,20 +2179,11 @@ async function loadProducts() {
 
           throw new Error(
             data.error ||
-            (
-              isEditing
-                ? "Failed to update product."
-                : "Failed to create product."
-            )
+            "Request failed."
           );
 
         }
 
-
-
-        // =====================================
-        // SUCCESS MESSAGE
-        // =====================================
 
         message.className =
           "form-message success";
@@ -2469,30 +2191,16 @@ async function loadProducts() {
 
         message.textContent =
           isEditing
-
             ? "Product updated successfully."
-
             : "Product created successfully.";
 
-
-
-        // =====================================
-        // REFRESH PRODUCT LIST
-        // =====================================
 
         await loadProducts();
 
 
-
-        // =====================================
-        // CLOSE MODAL
-        // =====================================
-
         setTimeout(
           () => {
-
             closeProductModal();
-
           },
           800
         );
@@ -2518,17 +2226,911 @@ async function loadProducts() {
           false;
 
 
-        /*
-         * Restore correct button
-         * depending on mode.
-         */
-
         button.textContent =
           isEditing
-
             ? "Update Product"
-
             : "Save Product";
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // DELETE PRODUCT
+    // =========================================
+
+    async function deleteProduct(
+      productId
+    ) {
+
+      let productName =
+        "this product";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/products",
+            {
+              method: "GET",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          response.ok &&
+          data.ok
+        ) {
+
+          const product =
+            (
+              data.products || []
+            ).find(
+              item =>
+                Number(item.id) ===
+                Number(productId)
+            );
+
+
+          if (product) {
+            productName =
+              product.name;
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      const confirmed =
+        confirm(
+          `Are you sure you want to delete "${productName}"?`
+        );
+
+
+      if (!confirmed) {
+        return;
+      }
+
+
+      try {
+
+        const response =
+          await fetch(
+            `/api/admin/products/${productId}`,
+            {
+              method: "DELETE",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Failed to delete product."
+          );
+
+        }
+
+
+        alert(
+          "Product deleted successfully."
+        );
+
+
+        await loadProducts();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        alert(
+          error.message ||
+          "Something went wrong."
+        );
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // VARIANT MODAL
+    // =========================================
+
+    let currentVariantProductId =
+      null;
+
+
+    let editingVariantId =
+      null;
+
+
+
+    async function openVariantsModal(
+      productId,
+      productName
+    ) {
+
+      currentVariantProductId =
+        productId;
+
+
+      editingVariantId =
+        null;
+
+
+      document
+        .getElementById(
+          "variantsProductName"
+        )
+        .textContent =
+          productName;
+
+
+      document
+        .getElementById(
+          "variantsModal"
+        )
+        .classList.add(
+          "show"
+        );
+
+
+      resetVariantForm();
+
+
+      await loadVariants(
+        productId
+      );
+
+    }
+
+
+
+    function closeVariantsModal() {
+
+      document
+        .getElementById(
+          "variantsModal"
+        )
+        .classList.remove(
+          "show"
+        );
+
+
+      currentVariantProductId =
+        null;
+
+
+      editingVariantId =
+        null;
+
+    }
+
+
+
+    // =========================================
+    // LOAD VARIANTS
+    // =========================================
+
+    async function loadVariants(
+      productId
+    ) {
+
+      const table =
+        document.getElementById(
+          "variantsTable"
+        );
+
+
+      table.innerHTML = `
+
+        <tr>
+
+          <td
+            colspan="5"
+            class="loading"
+          >
+            Loading variants...
+          </td>
+
+        </tr>
+
+      `;
+
+
+      try {
+
+        const response =
+          await fetch(
+            `/api/admin/products/${productId}/variants`,
+            {
+              method: "GET",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Failed to load variants."
+          );
+
+        }
+
+
+        const variants =
+          data.variants || [];
+
+
+        if (
+          variants.length === 0
+        ) {
+
+          table.innerHTML = `
+
+            <tr>
+
+              <td
+                colspan="5"
+                class="empty"
+              >
+
+                No variants found.
+
+                <br>
+
+                Add your first size/color
+                variant below.
+
+              </td>
+
+            </tr>
+
+          `;
+
+          return;
+
+        }
+
+
+        table.innerHTML =
+
+          variants
+            .map(
+              variant => {
+
+                const stock =
+                  Number(
+                    variant.stock_quantity || 0
+                  );
+
+
+                let stockClass =
+                  "stock-number";
+
+
+                if (
+                  stock === 0
+                ) {
+
+                  stockClass +=
+                    " stock-out";
+
+                } else if (
+                  stock <= 5
+                ) {
+
+                  stockClass +=
+                    " stock-low";
+
+                }
+
+
+                return `
+
+                  <tr>
+
+                    <td>
+                      ${escapeHtml(
+                        variant.size || "-"
+                      )}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(
+                        variant.color || "-"
+                      )}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(
+                        variant.sku || "-"
+                      )}
+                    </td>
+
+                    <td>
+
+                      <span
+                        class="${stockClass}"
+                      >
+
+                        ${stock}
+
+                      </span>
+
+                    </td>
+
+                    <td>
+
+                      <button
+                        type="button"
+                        class="action-button edit-button"
+                        onclick="editVariant(
+                          ${Number(variant.id)},
+                          '${escapeHtml(
+                            variant.size || ""
+                          )}',
+                          '${escapeHtml(
+                            variant.color || ""
+                          )}',
+                          '${escapeHtml(
+                            variant.sku || ""
+                          )}',
+                          ${stock}
+                        )"
+                      >
+                        Edit
+                      </button>
+
+
+                      <button
+                        type="button"
+                        class="action-button delete-button"
+                        onclick="deleteVariant(
+                          ${Number(variant.id)}
+                        )"
+                      >
+                        Delete
+                      </button>
+
+                    </td>
+
+                  </tr>
+
+                `;
+
+              }
+            )
+            .join("");
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        table.innerHTML = `
+
+          <tr>
+
+            <td
+              colspan="5"
+              class="empty"
+            >
+
+              Failed to load variants.
+
+            </td>
+
+          </tr>
+
+        `;
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // RESET VARIANT FORM
+    // =========================================
+
+    function resetVariantForm() {
+
+      editingVariantId =
+        null;
+
+
+      document
+        .getElementById(
+          "variantForm"
+        )
+        .reset();
+
+
+      document
+        .getElementById(
+          "variantStock"
+        )
+        .value =
+          "0";
+
+
+      document
+        .getElementById(
+          "variantFormTitle"
+        )
+        .textContent =
+          "Add Variant";
+
+
+      document
+        .getElementById(
+          "saveVariantButton"
+        )
+        .textContent =
+          "Add Variant";
+
+
+      document
+        .getElementById(
+          "cancelVariantEditButton"
+        )
+        .style.display =
+          "none";
+
+
+      const message =
+        document.getElementById(
+          "variantFormMessage"
+        );
+
+
+      message.className =
+        "form-message";
+
+
+      message.textContent =
+        "";
+
+    }
+
+
+
+    // =========================================
+    // EDIT VARIANT
+    // =========================================
+
+    function editVariant(
+      variantId,
+      size,
+      color,
+      sku,
+      stock
+    ) {
+
+      editingVariantId =
+        variantId;
+
+
+      document
+        .getElementById(
+          "variantSize"
+        )
+        .value =
+          size || "";
+
+
+      document
+        .getElementById(
+          "variantColor"
+        )
+        .value =
+          color || "";
+
+
+      document
+        .getElementById(
+          "variantSku"
+        )
+        .value =
+          sku || "";
+
+
+      document
+        .getElementById(
+          "variantStock"
+        )
+        .value =
+          stock;
+
+
+      document
+        .getElementById(
+          "variantFormTitle"
+        )
+        .textContent =
+          "Edit Variant";
+
+
+      document
+        .getElementById(
+          "saveVariantButton"
+        )
+        .textContent =
+          "Update Variant";
+
+
+      document
+        .getElementById(
+          "cancelVariantEditButton"
+        )
+        .style.display =
+          "block";
+
+
+      document
+        .getElementById(
+          "variantSize"
+        )
+        .focus();
+
+    }
+
+
+
+    // =========================================
+    // CREATE / UPDATE VARIANT
+    // =========================================
+
+    async function saveVariant(
+      event
+    ) {
+
+      event.preventDefault();
+
+
+      if (
+        !currentVariantProductId
+      ) {
+
+        return;
+
+      }
+
+
+      const size =
+        document
+          .getElementById(
+            "variantSize"
+          )
+          .value
+          .trim();
+
+
+      const color =
+        document
+          .getElementById(
+            "variantColor"
+          )
+          .value
+          .trim();
+
+
+      const sku =
+        document
+          .getElementById(
+            "variantSku"
+          )
+          .value
+          .trim();
+
+
+      const stock =
+        Number(
+          document
+            .getElementById(
+              "variantStock"
+            )
+            .value
+        );
+
+
+      const button =
+        document
+          .getElementById(
+            "saveVariantButton"
+          );
+
+
+      const message =
+        document
+          .getElementById(
+            "variantFormMessage"
+          );
+
+
+      if (
+        !size &&
+        !color
+      ) {
+
+        message.className =
+          "form-message error";
+
+        message.textContent =
+          "Please enter at least a size or color.";
+
+        return;
+
+      }
+
+
+      if (
+        !Number.isInteger(stock) ||
+        stock < 0
+      ) {
+
+        message.className =
+          "form-message error";
+
+        message.textContent =
+          "Stock must be a non-negative integer.";
+
+        return;
+
+      }
+
+
+      button.disabled =
+        true;
+
+
+      button.textContent =
+        editingVariantId
+          ? "Updating..."
+          : "Adding...";
+
+
+      try {
+
+        const isEditing =
+          Boolean(
+            editingVariantId
+          );
+
+
+        const url =
+          isEditing
+
+            ? `/api/admin/variants/${editingVariantId}`
+
+            : `/api/admin/products/${currentVariantProductId}/variants`;
+
+
+        const method =
+          isEditing
+            ? "PUT"
+            : "POST";
+
+
+        const response =
+          await fetch(
+            url,
+            {
+
+              method,
+
+              credentials:
+                "include",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+
+                  size,
+
+                  color,
+
+                  sku,
+
+                  stock_quantity:
+                    stock
+
+                })
+
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Failed to save variant."
+          );
+
+        }
+
+
+        message.className =
+          "form-message success";
+
+
+        message.textContent =
+          isEditing
+
+            ? "Variant updated successfully."
+
+            : "Variant added successfully.";
+
+
+        await loadVariants(
+          currentVariantProductId
+        );
+
+
+        await updateStockCount();
+
+
+        setTimeout(
+          () => {
+            resetVariantForm();
+          },
+          700
+        );
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        message.className =
+          "form-message error";
+
+
+        message.textContent =
+          error.message ||
+          "Something went wrong.";
+
+
+      } finally {
+
+        button.disabled =
+          false;
+
+
+        button.textContent =
+          editingVariantId
+            ? "Update Variant"
+            : "Add Variant";
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // DELETE VARIANT
+    // =========================================
+
+    async function deleteVariant(
+      variantId
+    ) {
+
+      const confirmed =
+        confirm(
+          "Are you sure you want to delete this variant?"
+        );
+
+
+      if (!confirmed) {
+
+        return;
+
+      }
+
+
+      try {
+
+        const response =
+          await fetch(
+            `/api/admin/variants/${variantId}`,
+            {
+              method: "DELETE",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Failed to delete variant."
+          );
+
+        }
+
+
+        alert(
+          "Variant deleted successfully."
+        );
+
+
+        await loadVariants(
+          currentVariantProductId
+        );
+
+
+        await updateStockCount();
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        alert(
+          error.message ||
+          "Something went wrong."
+        );
 
       }
 
@@ -2548,17 +3150,13 @@ async function loadProducts() {
           "/api/admin/logout",
           {
             method: "POST",
-
-            credentials:
-              "include"
+            credentials: "include"
           }
         );
 
       } catch (error) {
 
-        console.error(
-          error
-        );
+        console.error(error);
 
       }
 
@@ -2571,7 +3169,7 @@ async function loadProducts() {
 
 
     // =========================================
-    // FORM SUBMIT
+    // FORM EVENTS
     // =========================================
 
     document
@@ -2584,9 +3182,19 @@ async function loadProducts() {
       );
 
 
+    document
+      .getElementById(
+        "variantForm"
+      )
+      .addEventListener(
+        "submit",
+        saveVariant
+      );
+
+
 
     // =========================================
-    // INITIALIZE DASHBOARD
+    // INITIALIZE
     // =========================================
 
     async function initializeDashboard() {
@@ -2610,7 +3218,6 @@ async function loadProducts() {
 
 
     initializeDashboard();
-
 
   </script>
 
