@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>CANVO Admin Dashboard</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      background: #f5f6f8;
+      color: #172033;
+    }
+
+
+    /* =========================================
+       SIDEBAR
+       ========================================= */
+
+    .sidebar {
+      position: fixed;
+
+      left: 0;
+      top: 0;
+
+      width: 240px;
+      height: 100vh;
+
+      background: #07111f;
+      color: white;
+
+      padding: 28px 18px;
+
+      z-index: 100;
+    }
+
+
+    .brand {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+
+    .brand h1 {
+      color: #d4af37;
+
+      font-size: 30px;
+
+      letter-spacing: 5px;
+    }
+
+
+    .brand p {
+      color: #aeb8c5;
+
+      font-size: 11px;
+
+      letter-spacing: 2px;
+
+      margin-top: 5px;
+    }
+
+
+    .nav {
+      display: flex;
+
+      flex-direction: column;
+
+      gap: 8px;
+    }
+
+
+    .nav button {
+      width: 100%;
+
+      border: none;
+
+      background: transparent;
+
+      color: #c8d0da;
+
+      padding: 13px 15px;
+
+      border-radius: 8px;
+
+      text-align: left;
+
+      font-size: 14px;
+
+      cursor: pointer;
+    }
+
+
+    .nav button:hover,
+    .nav button.active {
+      background: #16263a;
+
+      color: white;
+    }
+
+
+    .logout-button {
+      position: absolute;
+
+      bottom: 25px;
+
+      left: 18px;
+
+      width: calc(100% - 36px);
+
+      padding: 12px;
+
+      border: 1px solid #39495d;
+
+      background: transparent;
+
+      color: #d8dee7;
+
+      border-radius: 8px;
+
+      cursor: pointer;
+    }
+
+
+    .logout-button:hover {
+      background: #1b2a3e;
+    }
+
+
+    /* =========================================
+       MAIN
+       ========================================= */
+
+    .main {
+      margin-left: 240px;
+
+      min-height: 100vh;
+
+      padding: 30px;
+    }
+
+
+    .topbar {
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: center;
+
+      margin-bottom: 30px;
+    }
+
+
+    .topbar h2 {
+      font-size: 28px;
+
+      color: #111827;
+    }
+
+
+    .admin-info {
+      text-align: right;
+    }
+
+
+    .admin-name {
+      font-weight: 600;
+
+      color: #172033;
+    }
+
+
+    .admin-email {
+      font-size: 12px;
+
+      color: #7b8796;
+
+      margin-top: 3px;
+    }
+
+
+    /* =========================================
+       CARDS
+       ========================================= */
+
+    .stats {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4, 1fr);
+
+      gap: 18px;
+
+      margin-bottom: 30px;
+    }
+
+
+    .stat-card {
+      background: white;
+
+      border-radius: 12px;
+
+      padding: 22px;
+
+      box-shadow:
+        0 3px 15px
+        rgba(0, 0, 0, 0.05);
+    }
+
+
+    .stat-label {
+      font-size: 13px;
+
+      color: #7b8796;
+
+      margin-bottom: 10px;
+    }
+
+
+    .stat-value {
+      font-size: 30px;
+
+      font-weight: 700;
+
+      color: #111827;
+    }
+
+
+    /* =========================================
+       CONTENT CARD
+       ========================================= */
+
+    .content-card {
+      background: white;
+
+      border-radius: 12px;
+
+      padding: 24px;
+
+      box-shadow:
+        0 3px 15px
+        rgba(0, 0, 0, 0.05);
+    }
+
+
+    .content-header {
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: center;
+
+      margin-bottom: 20px;
+    }
+
+
+    .content-header h3 {
+      font-size: 20px;
+    }
+
+
+    .add-button {
+      border: none;
+
+      background: #07111f;
+
+      color: white;
+
+      padding: 11px 18px;
+
+      border-radius: 7px;
+
+      cursor: pointer;
+
+      font-weight: 600;
+    }
+
+
+    .add-button:hover {
+      background: #16263a;
+    }
+
+
+    /* =========================================
+       TABLE
+       ========================================= */
+
+    .table-wrapper {
+      width: 100%;
+
+      overflow-x: auto;
+    }
+
+
+    table {
+      width: 100%;
+
+      border-collapse: collapse;
+
+      min-width: 700px;
+    }
+
+
+    th {
+      text-align: left;
+
+      font-size: 12px;
+
+      color: #7b8796;
+
+      text-transform: uppercase;
+
+      letter-spacing: 0.5px;
+
+      padding: 13px;
+
+      border-bottom:
+        1px solid #e5e7eb;
+    }
+
+
+    td {
+      padding: 15px 13px;
+
+      border-bottom:
+        1px solid #eef0f3;
+
+      font-size: 14px;
+    }
+
+
+    .product-image {
+      width: 50px;
+
+      height: 50px;
+
+      object-fit: cover;
+
+      border-radius: 7px;
+
+      background: #f1f3f5;
+    }
+
+
+    .status {
+      display: inline-block;
+
+      padding: 5px 9px;
+
+      border-radius: 20px;
+
+      font-size: 11px;
+
+      font-weight: 600;
+    }
+
+
+    .status.active {
+      background: #eaf8f0;
+
+      color: #18794e;
+    }
+
+
+    .status.inactive {
+      background: #fff0f0;
+
+      color: #b42318;
+    }
+
+
+    .empty {
+      text-align: center;
+
+      padding: 50px 20px;
+
+      color: #8a95a3;
+    }
+
+
+    /* =========================================
+       LOADING
+       ========================================= */
+
+    .loading {
+      text-align: center;
+
+      padding: 40px;
+
+      color: #7b8796;
+    }
+
+
+    /* =========================================
+       MOBILE
+       ========================================= */
+
+    @media (max-width: 900px) {
+
+      .sidebar {
+        width: 200px;
+      }
+
+      .main {
+        margin-left: 200px;
+      }
+
+      .stats {
+        grid-template-columns:
+          repeat(2, 1fr);
+      }
+
+    }
+
+
+    @media (max-width: 650px) {
+
+      .sidebar {
+        position: relative;
+
+        width: 100%;
+
+        height: auto;
+
+        padding: 18px;
+      }
+
+
+      .brand {
+        margin-bottom: 15px;
+      }
+
+
+      .nav {
+        flex-direction: row;
+
+        overflow-x: auto;
+      }
+
+
+      .nav button {
+        white-space: nowrap;
+      }
+
+
+      .logout-button {
+        position: static;
+
+        width: 100%;
+
+        margin-top: 15px;
+      }
+
+
+      .main {
+        margin-left: 0;
+
+        padding: 18px;
+      }
+
+
+      .topbar {
+        align-items: flex-start;
+
+        gap: 15px;
+
+        flex-direction: column;
+      }
+
+
+      .admin-info {
+        text-align: left;
+      }
+
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+    }
+
+  </style>
+</head>
+
+
+<body>
+
+
+  <!-- =========================================
+       SIDEBAR
+       ========================================= -->
+
+  <aside class="sidebar">
+
+    <div class="brand">
+
+      <h1>CANVO</h1>
+
+      <p>ADMIN PANEL</p>
+
+    </div>
+
+
+    <nav class="nav">
+
+      <button
+        class="active"
+        onclick="showSection('dashboard')"
+      >
+        Dashboard
+      </button>
+
+
+      <button
+        onclick="showSection('products')"
+      >
+        Products
+      </button>
+
+
+      <button
+        onclick="showSection('orders')"
+      >
+        Orders
+      </button>
+
+
+      <button
+        onclick="showSection('customers')"
+      >
+        Customers
+      </button>
+
+
+      <button
+        onclick="showSection('stock')"
+      >
+        Stock
+      </button>
+
+    </nav>
+
+
+    <button
+      class="logout-button"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+
+  <!-- =========================================
+       MAIN
+       ========================================= -->
+
+  <main class="main">
+
+
+    <!-- TOP BAR -->
+
+    <div class="topbar">
+
+      <div>
+
+        <h2>Dashboard</h2>
+
+      </div>
+
+
+      <div class="admin-info">
+
+        <div
+          class="admin-name"
+          id="adminName"
+        >
+          Loading...
+        </div>
+
+        <div
+          class="admin-email"
+          id="adminEmail"
+        >
+          Loading...
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- =========================================
+         STATS
+         ========================================= -->
+
+    <section class="stats">
+
+      <div class="stat-card">
+
+        <div class="stat-label">
+          Total Products
+        </div>
+
+        <div
+          class="stat-value"
+          id="productCount"
+        >
+          0
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-label">
+          Orders
+        </div>
+
+        <div
+          class="stat-value"
+          id="orderCount"
+        >
+          0
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-label">
+          Customers
+        </div>
+
+        <div
+          class="stat-value"
+          id="customerCount"
+        >
+          0
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-label">
+          Stock Items
+        </div>
+
+        <div
+          class="stat-value"
+          id="stockCount"
+        >
+          0
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================================
+         PRODUCTS
+         ========================================= -->
+
+    <section
+      class="content-card"
+      id="productsSection"
+    >
+
+      <div class="content-header">
+
+        <h3>Products</h3>
+
+        <button
+          class="add-button"
+          onclick="addProductComingSoon()"
+        >
+          + Add Product
+        </button>
+
+      </div>
+
+
+      <div class="table-wrapper">
+
+        <table>
+
+          <thead>
+
+            <tr>
+
+              <th>Image</th>
+
+              <th>Product</th>
+
+              <th>Category</th>
+
+              <th>Price</th>
+
+              <th>Status</th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="productsTable">
+
+            <tr>
+
+              <td
+                colspan="5"
+                class="loading"
+              >
+                Loading products...
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+  </main>
+
+
+
+  <script>
+
+
+    // =========================================
+    // CHECK ADMIN SESSION
+    // =========================================
+
+    async function checkAdminSession() {
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/admin/me",
+            {
+              method: "GET",
+              credentials: "include"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.authenticated
+        ) {
+
+          window.location.href =
+            "/admin-login.html";
+
+          return false;
+
+        }
+
+
+        document.getElementById(
+          "adminName"
+        ).textContent =
+          data.admin.name;
+
+
+        document.getElementById(
+          "adminEmail"
+        ).textContent =
+          data.admin.email;
+
+
+        return true;
+
+
+      } catch (error) {
+
+        window.location.href =
+          "/admin-login.html";
+
+        return false;
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // LOAD PRODUCTS
+    // =========================================
+
+    async function loadProducts() {
+
+      const table =
+        document.getElementById(
+          "productsTable"
+        );
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/products",
+            {
+              method: "GET"
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (
+          !response.ok ||
+          !data.ok
+        ) {
+
+          throw new Error(
+            data.error ||
+            "Unable to load products."
+          );
+
+        }
+
+
+        const products =
+          data.products || [];
+
+
+        document.getElementById(
+          "productCount"
+        ).textContent =
+          products.length;
+
+
+        if (products.length === 0) {
+
+          table.innerHTML = `
+            <tr>
+              <td
+                colspan="5"
+                class="empty"
+              >
+                No products found.
+                <br>
+                Add your first product
+                from the admin panel.
+              </td>
+            </tr>
+          `;
+
+          return;
+
+        }
+
+
+        table.innerHTML =
+          products.map(
+            product => `
+
+              <tr>
+
+                <td>
+
+                  ${
+                    product.image_url
+
+                      ? `
+                        <img
+                          src="${escapeHtml(
+                            product.image_url
+                          )}"
+                          class="product-image"
+                          alt="${escapeHtml(
+                            product.name
+                          )}"
+                        >
+                      `
+
+                      : `
+                        <div
+                          class="product-image"
+                        ></div>
+                      `
+                  }
+
+                </td>
+
+
+                <td>
+
+                  <strong>
+                    ${escapeHtml(
+                      product.name
+                    )}
+                  </strong>
+
+                </td>
+
+
+                <td>
+                  ${escapeHtml(
+                    product.category
+                  )}
+                </td>
+
+
+                <td>
+                  ৳${Number(
+                    product.price
+                  ).toLocaleString()}
+                </td>
+
+
+                <td>
+
+                  <span
+                    class="status ${
+                      product.status ===
+                      "active"
+                        ? "active"
+                        : "inactive"
+                    }"
+                  >
+
+                    ${escapeHtml(
+                      product.status
+                    )}
+
+                  </span>
+
+                </td>
+
+              </tr>
+
+            `
+          )
+          .join("");
+
+
+      } catch (error) {
+
+        table.innerHTML = `
+          <tr>
+            <td
+              colspan="5"
+              class="empty"
+            >
+              Failed to load products.
+            </td>
+          </tr>
+        `;
+
+        console.error(error);
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // HTML ESCAPE
+    // =========================================
+
+    function escapeHtml(value) {
+
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    }
+
+
+
+    // =========================================
+    // NAVIGATION
+    // =========================================
+
+    function showSection(section) {
+
+      if (section !== "dashboard") {
+
+        alert(
+          section.charAt(0).toUpperCase() +
+          section.slice(1) +
+          " management will be added next."
+        );
+
+      }
+
+    }
+
+
+
+    // =========================================
+    // ADD PRODUCT PLACEHOLDER
+    // =========================================
+
+    function addProductComingSoon() {
+
+      alert(
+        "Product management API is the next step. " +
+        "We will add real product creation here."
+      );
+
+    }
+
+
+
+    // =========================================
+    // LOGOUT
+    // =========================================
+
+    async function logout() {
+
+      try {
+
+        await fetch(
+          "/api/admin/logout",
+          {
+            method: "POST",
+            credentials: "include"
+          }
+        );
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      window.location.href =
+        "/admin-login.html";
+
+    }
+
+
+
+    // =========================================
+    // INITIALIZE DASHBOARD
+    // =========================================
+
+    async function initializeDashboard() {
+
+      const authenticated =
+        await checkAdminSession();
+
+
+      if (!authenticated) {
+        return;
+      }
+
+
+      await loadProducts();
+
+    }
+
+
+    initializeDashboard();
+
+  </script>
+
+
+</body>
+</html>
