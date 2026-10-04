@@ -1431,6 +1431,210 @@ export default {
     // 10. SERVE EXISTING CANVO WEBSITE
     // ========================================================
 
+// ============================================================
+// ADMIN EDIT PRODUCT
+// ============================================================
+
+if (
+  url.pathname.startsWith("/api/admin/products/") &&
+  request.method === "PUT"
+) {
+  const admin = await getAuthenticatedAdmin(request, env);
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized. Please login again."
+    }, 401);
+  }
+
+  try {
+    const productId = url.pathname.split("/").pop();
+
+    if (!productId || !/^\d+$/.test(productId)) {
+      return json({
+        ok: false,
+        error: "Invalid product ID."
+      }, 400);
+    }
+
+    const body = await request.json();
+
+    const name = body?.name?.trim();
+    const category = body?.category?.trim();
+    const description = body?.description?.trim() || "";
+    const price = Number(body?.price);
+
+    const oldPriceValue = body?.old_price;
+
+    const oldPrice =
+      oldPriceValue === null ||
+      oldPriceValue === undefined ||
+      oldPriceValue === ""
+        ? null
+        : Number(oldPriceValue);
+
+    const imageUrl =
+      body?.image_url?.trim() || null;
+
+    const status =
+      body?.status === "inactive"
+        ? "inactive"
+        : "active";
+
+    if (!name || !category) {
+      return json({
+        ok: false,
+        error: "Product name and category are required."
+      }, 400);
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      return json({
+        ok: false,
+        error: "Invalid product price."
+      }, 400);
+    }
+
+    if (
+      oldPrice !== null &&
+      (!Number.isFinite(oldPrice) || oldPrice < 0)
+    ) {
+      return json({
+        ok: false,
+        error: "Invalid old price."
+      }, 400);
+    }
+
+    const existing = await env.DB
+      .prepare(`
+        SELECT id
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+      `)
+      .bind(productId)
+      .first();
+
+    if (!existing) {
+      return json({
+        ok: false,
+        error: "Product not found."
+      }, 404);
+    }
+
+    await env.DB
+      .prepare(`
+        UPDATE products
+        SET
+          name = ?,
+          category = ?,
+          description = ?,
+          price = ?,
+          old_price = ?,
+          image_url = ?,
+          status = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(
+        name,
+        category,
+        description,
+        price,
+        oldPrice,
+        imageUrl,
+        status,
+        productId
+      )
+      .run();
+
+    return json({
+      ok: true,
+      message: "Product updated successfully."
+    });
+
+  } catch (error) {
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+  }
+}
+
+
+// ============================================================
+// ADMIN DELETE PRODUCT
+// ============================================================
+
+if (
+  url.pathname.startsWith("/api/admin/products/") &&
+  request.method === "DELETE"
+) {
+  const admin = await getAuthenticatedAdmin(request, env);
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized. Please login again."
+    }, 401);
+  }
+
+  try {
+    const productId = url.pathname.split("/").pop();
+
+    if (!productId || !/^\d+$/.test(productId)) {
+      return json({
+        ok: false,
+        error: "Invalid product ID."
+      }, 400);
+    }
+
+    const existing = await env.DB
+      .prepare(`
+        SELECT id, name
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+      `)
+      .bind(productId)
+      .first();
+
+    if (!existing) {
+      return json({
+        ok: false,
+        error: "Product not found."
+      }, 404);
+    }
+
+    // Soft delete:
+    // Product remains in database for existing order history,
+    // but becomes inactive and disappears from the storefront.
+
+    await env.DB
+      .prepare(`
+        UPDATE products
+        SET
+          status = 'inactive',
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(productId)
+      .run();
+
+    return json({
+      ok: true,
+      message: "Product deleted successfully."
+    });
+
+  } catch (error) {
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+  }
+}
+    
     return env.ASSETS.fetch(
       request
     );
