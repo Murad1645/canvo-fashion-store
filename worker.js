@@ -1103,7 +1103,108 @@ export default {
       }
 
     }
+// ========================================================
+// PUBLIC — GET ACTIVE PRODUCT VARIANTS
+// ========================================================
 
+if (
+  url.pathname.startsWith("/api/products/") &&
+  url.pathname.endsWith("/variants") &&
+  request.method === "GET"
+) {
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const productId =
+      Number(parts[3]);
+
+
+    if (
+      !Number.isInteger(productId) ||
+      productId <= 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error: "Invalid product ID."
+        },
+        400
+      );
+
+    }
+
+
+    // Make sure the product is active
+    const product =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM products
+          WHERE id = ?
+            AND status = 'active'
+          LIMIT 1
+        `)
+        .bind(productId)
+        .first();
+
+
+    if (!product) {
+
+      return json(
+        {
+          ok: false,
+          error: "Product not found."
+        },
+        404
+      );
+
+    }
+
+
+    const {
+      results
+    } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id,
+            size,
+            color,
+            sku,
+            stock_quantity
+          FROM product_variants
+          WHERE product_id = ?
+            AND stock_quantity > 0
+          ORDER BY id ASC
+        `)
+        .bind(productId)
+        .all();
+
+
+    return json({
+      ok: true,
+      variants: results
+    });
+
+
+  } catch (error) {
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
 
     // ========================================================
     // 8. ADMIN — GET ALL PRODUCTS
