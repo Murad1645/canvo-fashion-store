@@ -1634,7 +1634,623 @@ if (
     }, 500);
   }
 }
-    
+    // ============================================================
+// PRODUCT VARIANT MANAGEMENT
+// ============================================================
+
+
+// ------------------------------------------------------------
+// GET VARIANTS FOR A PRODUCT
+// ------------------------------------------------------------
+
+if (
+  url.pathname.startsWith("/api/admin/products/") &&
+  url.pathname.endsWith("/variants") &&
+  request.method === "GET"
+) {
+  const admin = await getAuthenticatedAdmin(
+    request,
+    env
+  );
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized."
+    }, 401);
+  }
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const productId =
+      parts[4];
+
+    if (
+      !productId ||
+      !/^\d+$/.test(productId)
+    ) {
+      return json({
+        ok: false,
+        error: "Invalid product ID."
+      }, 400);
+    }
+
+
+    const product =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            name
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(productId)
+        .first();
+
+
+    if (!product) {
+      return json({
+        ok: false,
+        error: "Product not found."
+      }, 404);
+    }
+
+
+    const { results } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id,
+            size,
+            color,
+            sku,
+            stock_quantity,
+            created_at,
+            updated_at
+          FROM product_variants
+          WHERE product_id = ?
+          ORDER BY id ASC
+        `)
+        .bind(productId)
+        .all();
+
+
+    return json({
+      ok: true,
+      product,
+      variants: results
+    });
+
+
+  } catch (error) {
+
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+
+  }
+}
+
+
+
+// ------------------------------------------------------------
+// ADD PRODUCT VARIANT
+// ------------------------------------------------------------
+
+if (
+  url.pathname.startsWith("/api/admin/products/") &&
+  url.pathname.endsWith("/variants") &&
+  request.method === "POST"
+) {
+  const admin = await getAuthenticatedAdmin(
+    request,
+    env
+  );
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized."
+    }, 401);
+  }
+
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const productId =
+      parts[4];
+
+
+    if (
+      !productId ||
+      !/^\d+$/.test(productId)
+    ) {
+      return json({
+        ok: false,
+        error: "Invalid product ID."
+      }, 400);
+    }
+
+
+    // ------------------------------------------
+    // CHECK PRODUCT
+    // ------------------------------------------
+
+    const product =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            name
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(productId)
+        .first();
+
+
+    if (!product) {
+      return json({
+        ok: false,
+        error: "Product not found."
+      }, 404);
+    }
+
+
+    // ------------------------------------------
+    // READ REQUEST
+    // ------------------------------------------
+
+    let body;
+
+    try {
+
+      body =
+        await request.json();
+
+    } catch {
+
+      return json({
+        ok: false,
+        error: "Invalid JSON request body."
+      }, 400);
+
+    }
+
+
+    const size =
+      body?.size?.trim() || null;
+
+    const color =
+      body?.color?.trim() || null;
+
+    const sku =
+      body?.sku?.trim() || null;
+
+
+    const stockQuantity =
+      Number(
+        body?.stock_quantity ?? 0
+      );
+
+
+    // ------------------------------------------
+    // VALIDATION
+    // ------------------------------------------
+
+    if (
+      !Number.isFinite(stockQuantity) ||
+      !Number.isInteger(stockQuantity) ||
+      stockQuantity < 0
+    ) {
+
+      return json({
+        ok: false,
+        error:
+          "Stock quantity must be a non-negative integer."
+      }, 400);
+
+    }
+
+
+    if (!size && !color) {
+
+      return json({
+        ok: false,
+        error:
+          "At least size or color is required."
+      }, 400);
+
+    }
+
+
+    // ------------------------------------------
+    // CHECK SKU
+    // ------------------------------------------
+
+    if (sku) {
+
+      const existingSku =
+        await env.DB
+          .prepare(`
+            SELECT
+              id
+            FROM product_variants
+            WHERE sku = ?
+            LIMIT 1
+          `)
+          .bind(sku)
+          .first();
+
+
+      if (existingSku) {
+
+        return json({
+          ok: false,
+          error:
+            "This SKU already exists."
+        }, 409);
+
+      }
+
+    }
+
+
+    // ------------------------------------------
+    // INSERT VARIANT
+    // ------------------------------------------
+
+    const result =
+      await env.DB
+        .prepare(`
+          INSERT INTO product_variants
+          (
+            product_id,
+            size,
+            color,
+            sku,
+            stock_quantity
+          )
+          VALUES (?, ?, ?, ?, ?)
+        `)
+        .bind(
+          productId,
+          size,
+          color,
+          sku,
+          stockQuantity
+        )
+        .run();
+
+
+    return json({
+      ok: true,
+      message:
+        "Product variant created successfully.",
+      variant_id:
+        result.meta.last_row_id
+    }, 201);
+
+
+  } catch (error) {
+
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+
+  }
+}
+
+
+
+// ============================================================
+// UPDATE PRODUCT VARIANT
+// ============================================================
+
+if (
+  url.pathname.startsWith("/api/admin/variants/") &&
+  request.method === "PUT"
+) {
+  const admin = await getAuthenticatedAdmin(
+    request,
+    env
+  );
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized."
+    }, 401);
+  }
+
+
+  try {
+
+    const variantId =
+      url.pathname.split("/").pop();
+
+
+    if (
+      !variantId ||
+      !/^\d+$/.test(variantId)
+    ) {
+      return json({
+        ok: false,
+        error: "Invalid variant ID."
+      }, 400);
+    }
+
+
+    // ------------------------------------------
+    // CHECK VARIANT
+    // ------------------------------------------
+
+    const existing =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id
+          FROM product_variants
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(variantId)
+        .first();
+
+
+    if (!existing) {
+      return json({
+        ok: false,
+        error: "Variant not found."
+      }, 404);
+    }
+
+
+    // ------------------------------------------
+    // READ REQUEST
+    // ------------------------------------------
+
+    let body;
+
+    try {
+
+      body =
+        await request.json();
+
+    } catch {
+
+      return json({
+        ok: false,
+        error: "Invalid JSON request body."
+      }, 400);
+
+    }
+
+
+    const size =
+      body?.size?.trim() || null;
+
+    const color =
+      body?.color?.trim() || null;
+
+    const sku =
+      body?.sku?.trim() || null;
+
+
+    const stockQuantity =
+      Number(
+        body?.stock_quantity ?? 0
+      );
+
+
+    // ------------------------------------------
+    // VALIDATION
+    // ------------------------------------------
+
+    if (
+      !Number.isFinite(stockQuantity) ||
+      !Number.isInteger(stockQuantity) ||
+      stockQuantity < 0
+    ) {
+
+      return json({
+        ok: false,
+        error:
+          "Stock quantity must be a non-negative integer."
+      }, 400);
+
+    }
+
+
+    if (!size && !color) {
+
+      return json({
+        ok: false,
+        error:
+          "At least size or color is required."
+      }, 400);
+
+    }
+
+
+    // ------------------------------------------
+    // CHECK SKU
+    // ------------------------------------------
+
+    if (sku) {
+
+      const existingSku =
+        await env.DB
+          .prepare(`
+            SELECT
+              id
+            FROM product_variants
+            WHERE
+              sku = ?
+              AND id != ?
+            LIMIT 1
+          `)
+          .bind(
+            sku,
+            variantId
+          )
+          .first();
+
+
+      if (existingSku) {
+
+        return json({
+          ok: false,
+          error:
+            "This SKU already exists."
+        }, 409);
+
+      }
+
+    }
+
+
+    // ------------------------------------------
+    // UPDATE
+    // ------------------------------------------
+
+    await env.DB
+      .prepare(`
+        UPDATE product_variants
+        SET
+          size = ?,
+          color = ?,
+          sku = ?,
+          stock_quantity = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(
+        size,
+        color,
+        sku,
+        stockQuantity,
+        variantId
+      )
+      .run();
+
+
+    return json({
+      ok: true,
+      message:
+        "Product variant updated successfully."
+    });
+
+
+  } catch (error) {
+
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+
+  }
+}
+
+
+
+// ============================================================
+// DELETE PRODUCT VARIANT
+// ============================================================
+
+if (
+  url.pathname.startsWith("/api/admin/variants/") &&
+  request.method === "DELETE"
+) {
+  const admin = await getAuthenticatedAdmin(
+    request,
+    env
+  );
+
+  if (!admin) {
+    return json({
+      ok: false,
+      error: "Unauthorized."
+    }, 401);
+  }
+
+
+  try {
+
+    const variantId =
+      url.pathname.split("/").pop();
+
+
+    if (
+      !variantId ||
+      !/^\d+$/.test(variantId)
+    ) {
+      return json({
+        ok: false,
+        error: "Invalid variant ID."
+      }, 400);
+    }
+
+
+    const existing =
+      await env.DB
+        .prepare(`
+          SELECT
+            id
+          FROM product_variants
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(variantId)
+        .first();
+
+
+    if (!existing) {
+      return json({
+        ok: false,
+        error: "Variant not found."
+      }, 404);
+    }
+
+
+    await env.DB
+      .prepare(`
+        DELETE FROM product_variants
+        WHERE id = ?
+      `)
+      .bind(variantId)
+      .run();
+
+
+    return json({
+      ok: true,
+      message:
+        "Product variant deleted successfully."
+    });
+
+
+  } catch (error) {
+
+    return json({
+      ok: false,
+      error: error.message
+    }, 500);
+
+  }
+}
     return env.ASSETS.fetch(
       request
     );
