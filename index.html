@@ -876,15 +876,29 @@
                ADD TO CART
           ============================================== -->
 
-          <button
-            id="detailAddToCart"
-            class="add-btn detail-add-btn"
-            onclick="addSelectedVariantToCart()"
-            type="button"
-            disabled
-          >
-            SELECT SIZE & COLOR
-          </button>
+          <div class="detail-action-buttons">
+
+  <button
+    id="detailBuyNow"
+    class="detail-buy-btn"
+    onclick="buyNowSelectedVariant()"
+    type="button"
+    disabled
+  >
+    BUY NOW
+  </button>
+
+  <button
+    id="detailAddToCart"
+    class="add-btn detail-add-btn"
+    onclick="addSelectedVariantToCart()"
+    type="button"
+    disabled
+  >
+    SELECT SIZE & COLOR
+  </button>
+
+</div>
 
 
         </div>
