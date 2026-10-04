@@ -1365,267 +1365,293 @@
     }
 
 
+// =========================================
+// LOAD PRODUCTS
+// =========================================
 
-    // =========================================
-    // LOAD PRODUCTS
-    // =========================================
+async function loadProducts() {
 
-    async function loadProducts() {
-
-      const table =
-        document.getElementById(
-          "productsTable"
-        );
-
-
-      try {
-
-        /*
-         * IMPORTANT:
-         * Use admin endpoint here so that
-         * both active and inactive products
-         * are visible in the admin panel.
-         */
-
-        const response =
-          await fetch(
-            "/api/admin/products",
-            {
-              method: "GET",
-              credentials: "include"
-            }
-          );
+  const table =
+    document.getElementById(
+      "productsTable"
+    );
 
 
-        const data =
-          await response.json();
+  try {
 
+    /*
+     * IMPORTANT:
+     * Use admin endpoint here so that
+     * both active and inactive products
+     * are visible in the admin panel.
+     */
 
-        if (
-          !response.ok ||
-          !data.ok
-        ) {
-
-          throw new Error(
-            data.error ||
-            "Unable to load products."
-          );
-
+    const response =
+      await fetch(
+        "/api/admin/products",
+        {
+          method: "GET",
+          credentials: "include"
         }
+      );
 
 
-        const products =
-          data.products || [];
+    const data =
+      await response.json();
 
 
-        document
-          .getElementById(
-            "productCount"
-          )
-          .textContent =
-            products.length;
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
 
-
-        if (
-          products.length === 0
-        ) {
-
-          table.innerHTML = `
-
-            <tr>
-
-              <td
-                colspan="6"
-                class="empty"
-              >
-
-                No products found.
-
-                <br>
-
-                Add your first product
-                from the admin panel.
-
-              </td>
-
-            </tr>
-
-          `;
-
-          return;
-
-        }
-
-
-
-        table.innerHTML =
-
-          products
-            .map(
-              product => `
-
-                <tr>
-
-
-                  <!-- IMAGE -->
-
-                  <td>
-
-                    ${
-                      product.image_url
-
-                        ? `
-
-                          <img
-                            src="${escapeHtml(
-                              product.image_url
-                            )}"
-                            class="product-image"
-                            alt="${escapeHtml(
-                              product.name
-                            )}"
-                          >
-
-                        `
-
-                        : `
-
-                          <div
-                            class="product-image"
-                          ></div>
-
-                        `
-                    }
-
-                  </td>
-
-
-
-                  <!-- PRODUCT -->
-
-                  <td>
-
-                    <strong>
-
-                      ${escapeHtml(
-                        product.name
-                      )}
-
-                    </strong>
-
-                  </td>
-
-
-
-                  <!-- CATEGORY -->
-
-                  <td>
-
-                    ${escapeHtml(
-                      product.category
-                    )}
-
-                  </td>
-
-
-
-                  <!-- PRICE -->
-
-                  <td>
-
-                    ৳${Number(
-                      product.price
-                    ).toLocaleString()}
-
-                  </td>
-
-
-
-                  <!-- STATUS -->
-
-                  <td>
-
-                    <span
-                      class="status ${
-                        product.status ===
-                        "active"
-                          ? "active"
-                          : "inactive"
-                      }"
-                    >
-
-                      ${escapeHtml(
-                        product.status
-                      )}
-
-                    </span>
-
-                  </td>
-
-
-
-                  <!-- ACTIONS -->
-
-                  <td>
-
-                    <button
-                      type="button"
-                      class="action-button edit-button"
-                      onclick="editProduct(${Number(
-                        product.id
-                      )})"
-                    >
-                      Edit
-                    </button>
-
-
-                    <button
-                      type="button"
-                      class="action-button delete-button"
-                      onclick="deleteProduct(${Number(
-                        product.id
-                      )})"
-                    >
-                      Delete
-                    </button>
-
-                  </td>
-
-
-                </tr>
-
-              `
-            )
-            .join("");
-
-
-      } catch (error) {
-
-        console.error(error);
-
-
-        table.innerHTML = `
-
-          <tr>
-
-            <td
-              colspan="6"
-              class="empty"
-            >
-
-              Failed to load products.
-
-            </td>
-
-          </tr>
-
-        `;
-
-      }
+      throw new Error(
+        data.error ||
+        "Unable to load products."
+      );
 
     }
 
 
+    const products =
+      data.products || [];
+
+
+    /*
+     * =========================================
+     * COUNT ACTIVE PRODUCTS ONLY
+     * =========================================
+     *
+     * Inactive products remain visible
+     * in the admin panel, but they are
+     * not counted as active products.
+     */
+
+    const activeProducts =
+      products.filter(
+        product =>
+          product.status === "active"
+      );
+
+
+    document
+      .getElementById(
+        "productCount"
+      )
+      .textContent =
+        activeProducts.length;
+
+
+    /*
+     * =========================================
+     * NO PRODUCTS
+     * =========================================
+     */
+
+    if (
+      products.length === 0
+    ) {
+
+      table.innerHTML = `
+
+        <tr>
+
+          <td
+            colspan="6"
+            class="empty"
+          >
+
+            No products found.
+
+            <br>
+
+            Add your first product
+            from the admin panel.
+
+          </td>
+
+        </tr>
+
+      `;
+
+      return;
+
+    }
+
+
+
+    /*
+     * =========================================
+     * DISPLAY PRODUCTS
+     * =========================================
+     */
+
+    table.innerHTML =
+
+      products
+        .map(
+          product => `
+
+            <tr>
+
+
+              <!-- IMAGE -->
+
+              <td>
+
+                ${
+                  product.image_url
+
+                    ? `
+
+                      <img
+                        src="${escapeHtml(
+                          product.image_url
+                        )}"
+                        class="product-image"
+                        alt="${escapeHtml(
+                          product.name
+                        )}"
+                      >
+
+                    `
+
+                    : `
+
+                      <div
+                        class="product-image"
+                      ></div>
+
+                    `
+                }
+
+              </td>
+
+
+
+              <!-- PRODUCT -->
+
+              <td>
+
+                <strong>
+
+                  ${escapeHtml(
+                    product.name
+                  )}
+
+                </strong>
+
+              </td>
+
+
+
+              <!-- CATEGORY -->
+
+              <td>
+
+                ${escapeHtml(
+                  product.category
+                )}
+
+              </td>
+
+
+
+              <!-- PRICE -->
+
+              <td>
+
+                ৳${Number(
+                  product.price
+                ).toLocaleString()}
+
+              </td>
+
+
+
+              <!-- STATUS -->
+
+              <td>
+
+                <span
+                  class="status ${
+                    product.status ===
+                    "active"
+                      ? "active"
+                      : "inactive"
+                  }"
+                >
+
+                  ${escapeHtml(
+                    product.status
+                  )}
+
+                </span>
+
+              </td>
+
+
+
+              <!-- ACTIONS -->
+
+              <td>
+
+                <button
+                  type="button"
+                  class="action-button edit-button"
+                  onclick="editProduct(${Number(
+                    product.id
+                  )})"
+                >
+                  Edit
+                </button>
+
+
+                <button
+                  type="button"
+                  class="action-button delete-button"
+                  onclick="deleteProduct(${Number(
+                    product.id
+                  )})"
+                >
+                  Delete
+                </button>
+
+              </td>
+
+
+            </tr>
+
+          `
+        )
+        .join("");
+
+
+  } catch (error) {
+
+    console.error(error);
+
+
+    table.innerHTML = `
+
+      <tr>
+
+        <td
+          colspan="6"
+          class="empty"
+        >
+
+          Failed to load products.
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+}
 
     // =========================================
     // HTML ESCAPE
