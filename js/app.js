@@ -1975,3 +1975,26 @@ function openWishlist() {
   );
 
 }
+/* ========================================================
+   CLOSE CART WHEN CLICKING OUTSIDE
+======================================================== */
+
+document.addEventListener("click", function (event) {
+
+  const cartPanel = document.getElementById("cartPanel");
+
+  if (!cartPanel) return;
+
+  // Cart is not open
+  if (!cartPanel.classList.contains("active")) return;
+
+  // Click inside cart → keep it open
+  if (cartPanel.contains(event.target)) return;
+
+  // Click cart button → keep normal cart-button behavior
+  if (event.target.closest(".cart-btn")) return;
+
+  // Click anywhere else → close cart
+  closeCart();
+
+});
