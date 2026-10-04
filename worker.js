@@ -474,6 +474,197 @@ export default {
 
     }
 
+    // ==================================================
+// TEMPORARY ADMIN PASSWORD RESET
+// ==================================================
+
+if (
+  url.pathname === "/api/admin/reset-password" &&
+  request.method === "POST"
+) {
+
+  try {
+
+    // Check setup key
+    const setupKey =
+      request.headers.get("X-Admin-Setup-Key");
+
+    if (
+      !setupKey ||
+      setupKey !== env.ADMIN_SETUP_KEY
+    ) {
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Invalid setup key."
+        },
+        {
+          status: 401
+        }
+      );
+
+    }
+
+
+    // Read request body
+    let body;
+
+    try {
+
+      body = await request.json();
+
+    } catch {
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Invalid JSON request body."
+        },
+        {
+          status: 400
+        }
+      );
+
+    }
+
+
+    const email =
+      body?.email?.trim().toLowerCase();
+
+    const newPassword =
+      body?.new_password;
+
+
+    // Validate
+    if (!email || !newPassword) {
+
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Email and new password are required."
+        },
+        {
+          status: 400
+        }
+      );
+
+    }
+
+
+    if (newPassword.length < 10) {
+
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "New password must be at least 10 characters."
+        },
+        {
+          status: 400
+        }
+      );
+
+    }
+
+
+    // Find admin
+    const admin =
+      await env.DB
+        .prepare(`
+          SELECT id, email, status
+          FROM admins
+          WHERE email = ?
+          LIMIT 1
+        `)
+        .bind(email)
+        .first();
+
+
+    if (!admin) {
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Admin account not found."
+        },
+        {
+          status: 404
+        }
+      );
+
+    }
+
+
+    if (admin.status !== "active") {
+
+      return Response.json(
+        {
+          ok: false,
+          error: "Admin account is not active."
+        },
+        {
+          status: 403
+        }
+      );
+
+    }
+
+
+    // Hash new password
+    const newPasswordHash =
+      await hashPassword(newPassword);
+
+
+    // Update password
+    await env.DB
+      .prepare(`
+        UPDATE admins
+        SET
+          password_hash = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(
+        newPasswordHash,
+        admin.id
+      )
+      .run();
+
+
+    // Invalidate all existing admin sessions
+    await env.DB
+      .prepare(`
+        DELETE FROM admin_sessions
+        WHERE admin_id = ?
+      `)
+      .bind(admin.id)
+      .run();
+
+
+    return Response.json({
+      ok: true,
+      message:
+        "Admin password reset successfully."
+    });
+
+
+  } catch (error) {
+
+    return Response.json(
+      {
+        ok: false,
+        error: error.message
+      },
+      {
+        status: 500
+      }
+    );
+
+  }
+
+}
 
     // ==================================================
     // ADMIN LOGIN
