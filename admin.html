@@ -494,7 +494,151 @@
       }
 
     }
+/* =========================================
+   ADD PRODUCT MODAL
+   ========================================= */
 
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.modal-header h3 {
+  font-size: 22px;
+}
+
+.close-modal {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.form-group {
+  margin-bottom: 17px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172033;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #d5dbe3;
+  border-radius: 7px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #16263a;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.cancel-button {
+  border: 1px solid #d5dbe3;
+  background: white;
+  color: #172033;
+  padding: 11px 18px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.save-button {
+  border: none;
+  background: #07111f;
+  color: white;
+  padding: 11px 20px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-message {
+  margin-top: 15px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  display: none;
+  font-size: 13px;
+}
+
+.form-message.success {
+  display: block;
+  background: #eaf8f0;
+  color: #18794e;
+}
+
+.form-message.error {
+  display: block;
+  background: #fff0f0;
+  color: #b42318;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
   </style>
 </head>
 
@@ -694,12 +838,12 @@
 
         <h3>Products</h3>
 
-        <button
-          class="add-button"
-          onclick="addProductComingSoon()"
-        >
-          + Add Product
-        </button>
+       <button
+  class="add-button"
+  onclick="openProductModal()"
+>
+  + Add Product
+</button>
 
       </div>
 
@@ -750,7 +894,205 @@
 
 
   </main>
+<!-- =========================================
+     ADD PRODUCT MODAL
+     ========================================= -->
 
+<div class="modal" id="productModal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h3>Add New Product</h3>
+
+      <button
+        class="close-modal"
+        onclick="closeProductModal()"
+        type="button"
+      >
+        ×
+      </button>
+    </div>
+
+    <form id="productForm">
+
+      <div class="form-group">
+
+        <label for="productName">
+          Product Name *
+        </label>
+
+        <input
+          type="text"
+          id="productName"
+          placeholder="Example: Classic Runner"
+          required
+        >
+
+      </div>
+
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label for="productCategory">
+            Category *
+          </label>
+
+          <select id="productCategory" required>
+
+            <option value="">
+              Select category
+            </option>
+
+            <option value="Shoes">
+              Shoes
+            </option>
+
+            <option value="Bags">
+              Bags
+            </option>
+
+            <option value="Shirts">
+              Shirts
+            </option>
+
+            <option value="Pants">
+              Pants
+            </option>
+
+            <option value="Others">
+              Others
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="productStatus">
+            Status
+          </label>
+
+          <select id="productStatus">
+
+            <option value="active">
+              Active
+            </option>
+
+            <option value="inactive">
+              Inactive
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label for="productPrice">
+            Price (৳) *
+          </label>
+
+          <input
+            type="number"
+            id="productPrice"
+            min="0"
+            step="0.01"
+            placeholder="2490"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="productOldPrice">
+            Old Price (৳)
+          </label>
+
+          <input
+            type="number"
+            id="productOldPrice"
+            min="0"
+            step="0.01"
+            placeholder="2990"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="productImage">
+          Image URL
+        </label>
+
+        <input
+          type="url"
+          id="productImage"
+          placeholder="https://example.com/product.jpg"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="productDescription">
+          Description
+        </label>
+
+        <textarea
+          id="productDescription"
+          placeholder="Write product description..."
+        ></textarea>
+
+      </div>
+
+
+      <div
+        id="productFormMessage"
+        class="form-message"
+      ></div>
+
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="cancel-button"
+          onclick="closeProductModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="save-button"
+          id="saveProductButton"
+        >
+          Save Product
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
 
 
   <script>
@@ -1031,20 +1373,190 @@
     }
 
 
+// =========================================
+// ADD PRODUCT
+// =========================================
 
-    // =========================================
-    // ADD PRODUCT PLACEHOLDER
-    // =========================================
+function openProductModal() {
 
-    function addProductComingSoon() {
+  document
+    .getElementById("productModal")
+    .classList.add("show");
 
-      alert(
-        "Product management API is the next step. " +
-        "We will add real product creation here."
+  document
+    .getElementById("productForm")
+    .reset();
+
+  const message =
+    document.getElementById("productFormMessage");
+
+  message.className = "form-message";
+  message.textContent = "";
+
+}
+
+
+function closeProductModal() {
+
+  document
+    .getElementById("productModal")
+    .classList.remove("show");
+
+}
+
+
+async function createProduct(event) {
+
+  event.preventDefault();
+
+  const button =
+    document.getElementById("saveProductButton");
+
+  const message =
+    document.getElementById("productFormMessage");
+
+
+  const name =
+    document
+      .getElementById("productName")
+      .value
+      .trim();
+
+  const category =
+    document
+      .getElementById("productCategory")
+      .value;
+
+  const price =
+    Number(
+      document
+        .getElementById("productPrice")
+        .value
+    );
+
+  const oldPriceValue =
+    document
+      .getElementById("productOldPrice")
+      .value;
+
+  const old_price =
+    oldPriceValue === ""
+      ? null
+      : Number(oldPriceValue);
+
+  const image_url =
+    document
+      .getElementById("productImage")
+      .value
+      .trim();
+
+  const description =
+    document
+      .getElementById("productDescription")
+      .value
+      .trim();
+
+  const status =
+    document
+      .getElementById("productStatus")
+      .value;
+
+
+  if (!name || !category || !price) {
+
+    message.className =
+      "form-message error";
+
+    message.textContent =
+      "Please fill in all required fields.";
+
+    return;
+  }
+
+
+  button.disabled = true;
+  button.textContent = "Saving...";
+
+
+  try {
+
+    const response = await fetch(
+      "/api/admin/products",
+      {
+        method: "POST",
+
+        credentials: "include",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+          name,
+          category,
+          price,
+          old_price,
+          image_url,
+          description,
+          status
+
+        })
+      }
+    );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok || !data.ok) {
+
+      throw new Error(
+        data.error ||
+        "Failed to create product."
       );
 
     }
 
+
+    message.className =
+      "form-message success";
+
+    message.textContent =
+      "Product created successfully.";
+
+
+    await loadProducts();
+
+
+    setTimeout(() => {
+
+      closeProductModal();
+
+    }, 800);
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.className =
+      "form-message error";
+
+    message.textContent =
+      error.message ||
+      "Something went wrong.";
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Save Product";
+
+  }
+
+}
+   
 
 
     // =========================================
@@ -1095,6 +1607,12 @@
       await loadProducts();
 
     }
+document
+  .getElementById("productForm")
+  .addEventListener(
+    "submit",
+    createProduct
+  );
 
 
     initializeDashboard();
