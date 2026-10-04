@@ -6,7 +6,364 @@
 <footer class="footer"><div class="footer-brand"><img src="images/logo.png" alt="CANVO"><p>Modern fashion for everyday confidence.</p></div><div><h4>SHOP</h4><a href="shop.html?category=Shoes">Shoes</a><a href="shop.html?category=Bags">Bags</a><a href="shop.html?category=Shirts">Shirts</a><a href="shop.html?category=Pants">Pants</a></div><div><h4>HELP</h4><a href="#">Shipping & Delivery</a><a href="#">Returns</a><a href="#">Size Guide</a><a href="#">Contact Us</a></div><div><h4>FOLLOW</h4><a href="#">Facebook</a><a href="#">Instagram</a><a href="#">TikTok</a></div><div class="copyright">© 2025–2026 CANVO. All rights reserved.</div></footer>
 <aside class="cart-panel" id="cartPanel"><div class="cart-head"><h3>Your Cart</h3><button onclick="closeCart()">×</button></div><div id="cartItems"></div><div class="cart-total"><span>Total</span><strong id="cartTotal">৳0</strong></div><button class="btn full" onclick="checkout()">CHECKOUT</button></aside><div class="toast" id="toast"></div>
 <script src="js/products.js"></script><script src="js/app.js"></script><script>
-const grid=document.getElementById('shopGrid'), search=document.getElementById('shopSearch'), sort=document.getElementById('sort'), count=document.getElementById('resultCount');let activeCat='All';
-function renderShop(){let q=search.value.toLowerCase().trim();let list=products.filter(p=>(activeCat==='All'||p.category===activeCat)&&(!q||(p.name+' '+p.category).toLowerCase().includes(q)));if(sort.value==='low')list.sort((a,b)=>a.price-b.price);if(sort.value==='high')list.sort((a,b)=>b.price-a.price);if(sort.value==='az')list.sort((a,b)=>a.name.localeCompare(b.name));count.textContent=`${list.length} product${list.length===1?'':'s'}`;grid.innerHTML=list.map(p=>`<article class="product-card"><div class="product-image">${p.badge?`<span class="badge">${p.badge}</span>`:''}<button class="wish" onclick="wishlist(this)">♡</button><img src="${p.image}" alt="${p.name}"></div><div class="product-info"><h3>${p.name}</h3><p>${p.category}</p><div class="price">${money(p.price)} ${p.oldPrice?`<span class="old-price">${money(p.oldPrice)}</span>`:''}</div><button class="add-btn" onclick="addToCart(${p.id})">ADD TO CART</button></div></article>`).join('')||'<p class="empty">No products found.</p>'}
-document.querySelectorAll('[data-cat]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-cat]').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeCat=b.dataset.cat;renderShop()}));search.addEventListener('input',renderShop);sort.addEventListener('change',renderShop);const params=new URLSearchParams(location.search);const initial=params.get('category');if(initial&&['Shoes','Bags','Shirts','Pants'].includes(initial)){activeCat=initial;document.querySelectorAll('[data-cat]').forEach(b=>b.classList.toggle('active',b.dataset.cat===initial))}renderShop();
-</script></body></html>
+
+<script>
+/* ========================================================
+   CANVO SHOP PAGE
+   D1 Products + Search + Category + Sort
+======================================================== */
+
+const shopGrid =
+  document.getElementById("shopGrid");
+
+const shopSearch =
+  document.getElementById("shopSearch");
+
+const shopSort =
+  document.getElementById("sort");
+
+const resultCount =
+  document.getElementById("resultCount");
+
+let activeCat = "All";
+
+
+// ========================================================
+// RENDER SHOP
+// ========================================================
+
+function renderShop() {
+
+  if (!shopGrid) return;
+
+  const query =
+    shopSearch
+      ? shopSearch.value
+          .trim()
+          .toLowerCase()
+      : "";
+
+  let list =
+    products.filter(product => {
+
+      const categoryMatch =
+        activeCat === "All" ||
+        String(product.category)
+          .toLowerCase() ===
+        activeCat.toLowerCase();
+
+      const searchMatch =
+        !query ||
+        String(product.name || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(product.category || "")
+          .toLowerCase()
+          .includes(query);
+
+      return (
+        categoryMatch &&
+        searchMatch
+      );
+
+    });
+
+  // ------------------------------------------------------
+  // SORT
+  // ------------------------------------------------------
+
+  if (shopSort) {
+
+    if (shopSort.value === "low") {
+
+      list.sort(
+        (a, b) =>
+          Number(a.price) -
+          Number(b.price)
+      );
+
+    }
+
+    if (shopSort.value === "high") {
+
+      list.sort(
+        (a, b) =>
+          Number(b.price) -
+          Number(a.price)
+      );
+
+    }
+
+    if (shopSort.value === "az") {
+
+      list.sort(
+        (a, b) =>
+          String(a.name)
+            .localeCompare(
+              String(b.name)
+            )
+      );
+
+    }
+
+  }
+
+  // ------------------------------------------------------
+  // RESULT COUNT
+  // ------------------------------------------------------
+
+  if (resultCount) {
+
+    resultCount.textContent =
+      `${list.length} product${
+        list.length === 1
+          ? ""
+          : "s"
+      }`;
+
+  }
+
+  // ------------------------------------------------------
+  // NO PRODUCTS
+  // ------------------------------------------------------
+
+  if (!list.length) {
+
+    shopGrid.innerHTML = `
+      <p class="empty">
+        No products found.
+      </p>
+    `;
+
+    return;
+
+  }
+
+  // ------------------------------------------------------
+  // PRODUCT CARDS
+  // ------------------------------------------------------
+
+  shopGrid.innerHTML =
+    list.map(product => {
+
+      const oldPrice =
+        product.oldPrice !== null
+          ? `
+            <span class="old-price">
+              ৳${formatPrice(product.oldPrice)}
+            </span>
+          `
+          : "";
+
+      return `
+        <article
+          class="product-card"
+        >
+
+          <div
+            class="product-image"
+            onclick="openProductDetails(${product.id})"
+            style="cursor:pointer;"
+          >
+
+            <img
+              src="${escapeHtml(product.image)}"
+              alt="${escapeHtml(product.name)}"
+              loading="lazy"
+            >
+
+          </div>
+
+          <div class="product-info">
+
+            <p>
+              ${escapeHtml(
+                product.category || ""
+              )}
+            </p>
+
+            <h3
+              onclick="openProductDetails(${product.id})"
+              style="cursor:pointer;"
+            >
+              ${escapeHtml(
+                product.name
+              )}
+            </h3>
+
+            <div class="price">
+
+              ৳${formatPrice(
+                product.price
+              )}
+
+              ${oldPrice}
+
+            </div>
+
+            <button
+              class="add-btn"
+              type="button"
+              onclick="openProductDetails(${product.id})"
+            >
+              VIEW DETAILS
+            </button>
+
+          </div>
+
+        </article>
+      `;
+
+    }).join("");
+
+}
+
+
+// ========================================================
+// CATEGORY BUTTONS
+// ========================================================
+
+document
+  .querySelectorAll("[data-cat]")
+  .forEach(button => {
+
+    button.addEventListener(
+      "click",
+      () => {
+
+        document
+          .querySelectorAll(
+            "[data-cat]"
+          )
+          .forEach(item => {
+
+            item.classList.remove(
+              "active"
+            );
+
+          });
+
+        button.classList.add(
+          "active"
+        );
+
+        activeCat =
+          button.dataset.cat;
+
+        renderShop();
+
+      }
+    );
+
+  });
+
+
+// ========================================================
+// SEARCH
+// ========================================================
+
+if (shopSearch) {
+
+  shopSearch.addEventListener(
+    "input",
+    renderShop
+  );
+
+}
+
+
+// ========================================================
+// SORT
+// ========================================================
+
+if (shopSort) {
+
+  shopSort.addEventListener(
+    "change",
+    renderShop
+  );
+
+}
+
+
+// ========================================================
+// URL CATEGORY
+// ========================================================
+
+const params =
+  new URLSearchParams(
+    window.location.search
+  );
+
+const initialCategory =
+  params.get("category");
+
+if (
+  initialCategory &&
+  [
+    "Shoes",
+    "Bags",
+    "Shirts",
+    "Pants"
+  ].includes(initialCategory)
+) {
+
+  activeCat =
+    initialCategory;
+
+  document
+    .querySelectorAll(
+      "[data-cat]"
+    )
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.cat ===
+        initialCategory
+      );
+
+    });
+
+}
+
+
+// ========================================================
+// IMPORTANT:
+// WAIT FOR D1 PRODUCTS
+// ========================================================
+
+(async function initializeShop() {
+
+  try {
+
+    await loadProducts();
+
+    renderShop();
+
+    updateCount();
+
+    renderCart();
+
+  } catch (error) {
+
+    console.error(
+      "Shop initialization error:",
+      error
+    );
+
+    if (shopGrid) {
+
+      shopGrid.innerHTML = `
+        <p class="empty">
+          Unable to load products.
+        </p>
+      `;
+
+    }
+
+  }
+
+})();
+
+</script>
