@@ -1,6 +1,101 @@
-const products = [
-  {id:1,name:"Classic Runner",category:"Shoes",price:2490,oldPrice:2990,image:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",badge:"NEW"},
-  {id:2,name:"Urban Leather Bag",category:"Bags",price:3290,oldPrice:null,image:"https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=800&q=85",badge:"NEW"},
-  {id:3,name:"Premium Oxford Shirt",category:"Shirts",price:1890,oldPrice:2190,image:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=85",badge:"SALE"},
-  {id:4,name:"Essential Straight Pants",category:"Pants",price:2290,oldPrice:null,image:"https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=85",badge:"NEW"}
-];
+// =========================================
+// CANVO PRODUCTS
+// Products are loaded from Cloudflare D1 API
+// =========================================
+
+let products = [];
+
+
+// =========================================
+// LOAD PRODUCTS FROM API
+// =========================================
+
+async function loadProducts() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/products",
+        {
+          method: "GET"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load products."
+      );
+
+    }
+
+
+    /*
+     * Convert database field names
+     * to the format used by the
+     * existing frontend.
+     */
+
+    products =
+      (data.products || [])
+        .map(product => ({
+
+          id:
+            Number(product.id),
+
+          name:
+            product.name,
+
+          category:
+            product.category,
+
+          price:
+            Number(product.price),
+
+          oldPrice:
+            product.old_price !== null
+              ? Number(product.old_price)
+              : null,
+
+          image:
+            product.image_url || "",
+
+          /*
+           * Badge is not stored in the
+           * database yet.
+           */
+          badge:
+            ""
+
+        }));
+
+
+    return products;
+
+
+  } catch (error) {
+
+    console.error(
+      "Product API error:",
+      error
+    );
+
+
+    products = [];
+
+
+    return [];
+
+  }
+
+}
