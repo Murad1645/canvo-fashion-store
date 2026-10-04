@@ -1575,7 +1575,7 @@ function openCart() {
 
   const cart =
     document.getElementById(
-      "cartDrawer"
+      "cartPanel"
     );
 
   if (!cart) return;
@@ -1600,7 +1600,7 @@ function closeCart() {
 
   const cart =
     document.getElementById(
-      "cartDrawer"
+      "cartPanel"
     );
 
   if (!cart) return;
@@ -1865,3 +1865,113 @@ document.addEventListener(
 
   }
 );
+
+// ========================================================
+// HEADER SEARCH
+// ========================================================
+
+function openSearch() {
+
+  const modal =
+    document.getElementById(
+      "searchModal"
+    );
+
+  if (!modal) return;
+
+  modal.classList.add(
+    "active"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  const input =
+    document.getElementById(
+      "searchInput"
+    );
+
+  if (input) {
+
+    setTimeout(() => {
+      input.focus();
+    }, 100);
+
+  }
+
+}
+
+
+// ========================================================
+// CLOSE SEARCH
+// ========================================================
+
+function closeSearch() {
+
+  const modal =
+    document.getElementById(
+      "searchModal"
+    );
+
+  if (!modal) return;
+
+  modal.classList.remove(
+    "active"
+  );
+
+  document.body.style.overflow =
+    "";
+
+}
+
+
+// ========================================================
+// MOBILE MENU
+// ========================================================
+
+function toggleMenu() {
+
+  const nav =
+    document.getElementById(
+      "nav"
+    );
+
+  if (!nav) return;
+
+  nav.classList.toggle(
+    "active"
+  );
+
+}
+
+
+// ========================================================
+// NEWSLETTER COMPATIBILITY
+// ========================================================
+
+function subscribe(event) {
+
+  if (event) {
+
+    event.preventDefault();
+
+  }
+
+  showToast(
+    "Thank you for subscribing."
+  );
+
+}
+
+
+// ========================================================
+// WISHLIST
+// ========================================================
+
+function openWishlist() {
+
+  showToast(
+    "Wishlist will be available soon."
+  );
+
+}
