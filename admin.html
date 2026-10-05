@@ -869,6 +869,7 @@
           <th>SKU</th>
           <th>Stock</th>
           <th>Status</th>
+          <th>Action</th>
         </tr>
 
       </thead>
@@ -2419,26 +2420,29 @@ async function loadStock() {
       variants.forEach(
         variant => {
 
-          stockRows.push({
+         stockRows.push({
 
-            product:
-              product.name || "-",
+  id:
+    variant.id,
 
-            size:
-              variant.size || "-",
+  product:
+    product.name || "-",
 
-            color:
-              variant.color || "-",
+  size:
+    variant.size || "-",
 
-            sku:
-              variant.sku || "-",
+  color:
+    variant.color || "-",
 
-            stock:
-              Number(
-                variant.stock_quantity || 0
-              )
+  sku:
+    variant.sku || "-",
 
-          });
+  stock:
+    Number(
+      variant.stock_quantity || 0
+    )
+
+});
 
         }
       );
@@ -2535,6 +2539,17 @@ async function loadStock() {
                 </span>
 
               </td>
+
+              <td>
+
+  <button
+    class="action-button"
+    onclick="openStockModal(${item.id})"
+  >
+    Edit
+  </button>
+
+</td>
 
             </tr>
 
