@@ -520,7 +520,589 @@ export default {
       }
 
     }
+// ========================================================
+// 3. CREATE CUSTOMER ORDER
+// ========================================================
 
+if (
+  request.method === "POST" &&
+  url.pathname === "/api/orders"
+) {
+
+  try {
+
+    const body =
+      await request.json();
+
+    const customer =
+      body.customer || {};
+
+    const items =
+      Array.isArray(body.items)
+        ? body.items
+        : [];
+
+
+    // ----------------------------------------------------
+    // BASIC VALIDATION
+    // ----------------------------------------------------
+
+    if (
+      !customer.name ||
+      !customer.phone ||
+      !customer.district ||
+      !customer.thana ||
+      !customer.address
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Please provide all required customer information."
+        },
+        400
+      );
+
+    }
+
+
+    if (!items.length) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Order must contain at least one item."
+        },
+        400
+      );
+
+    }
+
+
+    // ----------------------------------------------------
+    // CHECK PRODUCTS + VARIANTS + STOCK
+    // ----------------------------------------------------
+
+    const orderItems = [];
+
+    let subtotal = 0;
+
+
+    for (const item of items) {
+
+      const productId =
+        Number(item.productId);
+
+      const variantId =
+        Number(item.variantId);
+
+      const quantity =
+        Number(item.quantity);
+
+
+      if (
+        !Number.isInteger(productId) ||
+        !Number.isInteger(variantId) ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0
+      ) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              "Invalid product, variant or quantity."
+          },
+          400
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // GET PRODUCT
+      // --------------------------------------------------
+
+      const product =
+        await env.DB
+          .prepare(
+            `
+            SELECT
+              id,
+              name,
+              price,
+              active
+            FROM products
+            WHERE id = ?
+            `
+          )
+          .bind(productId)
+          .first();
+
+
+      if (!product) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Product ${productId} was not found.`
+          },
+          404
+        );
+
+      }
+
+
+      if (!product.active) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `${product.name} is not available.`
+          },
+          400
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // GET VARIANT
+      // --------------------------------------------------
+
+      const variant =
+        await env.DB
+          .prepare(
+            `
+            SELECT
+              id,
+              product_id,
+              size,
+              color,
+              sku,
+              stock_quantity
+            FROM product_variants
+            WHERE id = ?
+              AND product_id = ?
+            `
+          )
+          .bind(
+            variantId,
+            productId
+          )
+          .first();
+
+
+      if (!variant) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Selected variant for ${product.name} was not found.`
+          },
+          404
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // STOCK CHECK
+      // --------------------------------------------------
+
+      if (
+        Number(variant.stock_quantity) <
+        quantity
+      ) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Only ${variant.stock_quantity} unit(s) of ${product.name} are available.`
+          },
+          400
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // SERVER-SIDE PRICE
+      // --------------------------------------------------
+
+      const unitPrice =
+        Number(product.price);
+
+      const itemSubtotal =
+        unitPrice * quantity;
+
+
+      subtotal += itemSubtotal;
+
+
+      orderItems.push({
+
+        productId,
+
+        variantId,
+
+        productName:
+          product.name,
+
+        size:
+          variant.size || null,
+
+        color:
+          variant.color || null,
+
+        sku:
+          variant.sku || null,
+
+        unitPrice,
+
+        quantity,
+
+        subtotal:
+          itemSubtotal
+
+      });
+
+    }
+
+
+    // ----------------------------------------------------
+    // SHIPPING
+    // ----------------------------------------------------
+
+    const shippingCharge =
+      subtotal >= 2500
+        ? 0
+        : 60;
+
+
+    // ----------------------------------------------------
+    // DISCOUNT
+    // ----------------------------------------------------
+
+    const discount =
+      Number(body.discount || 0);
+
+
+    if (
+      !Number.isFinite(discount) ||
+      discount < 0 ||
+      discount > subtotal
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error: "Invalid discount amount."
+        },
+        400
+      );
+
+    }
+
+
+    const total =
+      subtotal +
+      shippingCharge -
+      discount;
+
+
+    // ----------------------------------------------------
+    // PARTIAL PAYMENT
+    // ----------------------------------------------------
+
+    let partialPayment =
+      Number(
+        body.partialPayment || 0
+      );
+
+
+    if (
+      !Number.isFinite(partialPayment) ||
+      partialPayment < 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Invalid partial payment amount."
+        },
+        400
+      );
+
+    }
+
+
+    if (partialPayment > total) {
+
+      partialPayment = total;
+
+    }
+
+
+    // ----------------------------------------------------
+    // PAYMENT METHOD
+    // ----------------------------------------------------
+
+    const paymentMethod =
+      body.paymentMethod ||
+      "online";
+
+
+    // ----------------------------------------------------
+    // CREATE UNIQUE ORDER NUMBER
+    // ----------------------------------------------------
+
+    const orderNumber =
+      `CANVO-${Date.now()}-${crypto
+        .randomUUID()
+        .slice(0, 8)
+        .toUpperCase()}`;
+
+
+    // ----------------------------------------------------
+    // CREATE ORDER
+    // ----------------------------------------------------
+
+    const orderResult =
+      await env.DB
+        .prepare(
+          `
+          INSERT INTO orders (
+            order_number,
+            customer_name,
+            phone,
+            district,
+            thana,
+            address,
+            note,
+            subtotal,
+            shipping_charge,
+            discount,
+            total,
+            partial_payment,
+            payment_method,
+            payment_status,
+            order_status
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `
+        )
+        .bind(
+
+          orderNumber,
+
+          customer.name,
+
+          customer.phone,
+
+          customer.district,
+
+          customer.thana,
+
+          customer.address,
+
+          customer.note || "",
+
+          subtotal,
+
+          shippingCharge,
+
+          discount,
+
+          total,
+
+          partialPayment,
+
+          paymentMethod,
+
+          "pending",
+
+          "pending"
+
+        )
+        .run();
+
+
+    const orderId =
+      orderResult.meta.last_row_id;
+
+
+    // ----------------------------------------------------
+    // INSERT ITEMS + DECREASE STOCK
+    // ----------------------------------------------------
+
+    const statements = [];
+
+
+    for (const item of orderItems) {
+
+      statements.push(
+
+        env.DB
+          .prepare(
+            `
+            INSERT INTO order_items (
+              order_id,
+              product_id,
+              variant_id,
+              product_name,
+              size,
+              color,
+              sku,
+              unit_price,
+              quantity,
+              subtotal
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `
+          )
+          .bind(
+
+            orderId,
+
+            item.productId,
+
+            item.variantId,
+
+            item.productName,
+
+            item.size,
+
+            item.color,
+
+            item.sku,
+
+            item.unitPrice,
+
+            item.quantity,
+
+            item.subtotal
+
+          )
+
+      );
+
+
+      statements.push(
+
+        env.DB
+          .prepare(
+            `
+            UPDATE product_variants
+            SET stock_quantity =
+              stock_quantity - ?
+            WHERE id = ?
+              AND stock_quantity >= ?
+            `
+          )
+          .bind(
+
+            item.quantity,
+
+            item.variantId,
+
+            item.quantity
+
+          )
+
+      );
+
+    }
+
+
+    // ----------------------------------------------------
+    // EXECUTE ITEM + STOCK QUERIES
+    // ----------------------------------------------------
+
+    await env.DB.batch(
+      statements
+    );
+
+
+    // ----------------------------------------------------
+    // SUCCESS
+    // ----------------------------------------------------
+
+    return json(
+      {
+        ok: true,
+
+        message:
+          "Order created successfully.",
+
+        order: {
+
+          id:
+            orderId,
+
+          orderNumber:
+            orderNumber,
+
+          subtotal:
+            subtotal,
+
+          shippingCharge:
+            shippingCharge,
+
+          discount:
+            discount,
+
+          total:
+            total,
+
+          partialPayment:
+            partialPayment,
+
+          paymentStatus:
+            "pending",
+
+          orderStatus:
+            "pending"
+
+        }
+
+      },
+      201
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Create order error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+
+        error:
+          "Unable to create order.",
+
+        details:
+          error.message
+
+      },
+      500
+    );
+
+  }
+
+}
 
     // ========================================================
     // 3. FIRST ADMIN SETUP
