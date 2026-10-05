@@ -1933,6 +1933,72 @@ function showSection(section) {
 
 
 // =========================================
+// UPDATE ORDER COUNT
+// =========================================
+
+async function updateOrderCount() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/orders",
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load order count."
+      );
+
+    }
+
+
+    const orders =
+      data.orders || [];
+
+
+    const orderCount =
+      document.getElementById(
+        "orderCount"
+      );
+
+
+    if (orderCount) {
+
+      orderCount.textContent =
+        orders.length;
+
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Order count error:",
+      error
+    );
+
+  }
+
+}
+
+
+
+// =========================================
 // ORDER MANAGEMENT
 // =========================================
 
@@ -1972,6 +2038,21 @@ async function loadOrders() {
 
     const orders =
       data.orders || [];
+
+
+    // Update Dashboard Orders count
+    const orderCount =
+      document.getElementById(
+        "orderCount"
+      );
+
+
+    if (orderCount) {
+
+      orderCount.textContent =
+        orders.length;
+
+    }
 
 
     if (orders.length === 0) {
@@ -4015,6 +4096,8 @@ function closeOrderDetailsModal() {
 
 
       await loadProducts();
+
+      await updateOrderCount();
 
     }
 
