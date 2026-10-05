@@ -1362,6 +1362,85 @@ if (
         );
       }
     }
+
+    // ========================================================
+// ADMIN — GET ALL CUSTOMERS
+// ========================================================
+
+if (
+  url.pathname === "/api/admin/customers" &&
+  request.method === "GET"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+
+  }
+
+  try {
+
+    const {
+      results
+    } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            name,
+            email,
+            phone,
+            address,
+            city,
+            postal_code,
+            country,
+            status,
+            created_at,
+            updated_at
+          FROM customers
+          ORDER BY id DESC
+        `)
+        .all();
+
+
+    return json({
+      ok: true,
+      customers: results,
+      count: results.length
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Get admin customers error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
 // ========================================================
 // 10. ADMIN — GET ALL ORDERS
 // ========================================================
