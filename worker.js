@@ -402,885 +402,684 @@ export default {
       }
     }
 
+
     // ========================================================
-    // 3. CREATE CUSTOMER ORDER
-    // ========================================================
+// 3. CREATE CUSTOMER ORDER
+// ========================================================
+
+if (
+  request.method === "POST" &&
+  url.pathname === "/api/orders"
+) {
+
+  try {
+
+    const body =
+      await request.json();
+
+    const customer =
+      body.customer || {};
+
+    const items =
+      Array.isArray(body.items)
+        ? body.items
+        : [];
+
+
+    // ----------------------------------------------------
+    // BASIC VALIDATION
+    // ----------------------------------------------------
 
     if (
-      request.method === "POST" &&
-      url.pathname === "/api/orders"
+      !customer.name ||
+      !customer.phone ||
+      !customer.district ||
+      !customer.thana ||
+      !customer.address
     ) {
 
-      try {
+      return json(
+        {
+          ok: false,
+          error:
+            "Please provide all required customer information."
+        },
+        400
+      );
 
-        const body =
-          await request.json();
-
-        const customer =
-          body.customer || {};
-
-        const items =
-          Array.isArray(body.items)
-            ? body.items
-            : [];
-
-        // ----------------------------------------------------
-        // BASIC VALIDATION
-        // ----------------------------------------------------
-
-        if (
-          !customer.name ||
-          !customer.phone ||
-          !customer.district ||
-          !customer.thana ||
-          !customer.address
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Please provide all required customer information."
-            },
-            400
-          );
-        }
-
-        if (!items.length) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Order must contain at least one item."
-            },
-            400
-          );
-        }
-
-        // ----------------------------------------------------
-        // CHECK PRODUCTS + VARIANTS + STOCK
-        // ----------------------------------------------------
-
-        const orderItems = [];
-
-        let subtotal = 0;
-
-        for (const item of items) {
-
-          const productId =
-            Number(item.productId);
-
-          const variantId =
-            Number(item.variantId);
-
-          const quantity =
-            Number(item.quantity);
-
-          if (
-            !Number.isInteger(productId) ||
-            !Number.isInteger(variantId) ||
-            !Number.isInteger(quantity) ||
-            quantity <= 0
-          ) {
-
-            return json(
-              {
-                ok: false,
-                error:
-                  "Invalid product, variant or quantity."
-              },
-              400
-            );
-          }
-
-          // --------------------------------------------------
-          // GET PRODUCT
-          // IMPORTANT:
-          // products table uses "status", not "active"
-          // --------------------------------------------------
-
-          const product =
-            await env.DB
-              .prepare(`
-                SELECT
-                  id,
-                  name,
-                  price,
-                  status
-                FROM products
-                WHERE id = ?
-                  AND status = 'active'
-                LIMIT 1
-              `)
-              .bind(productId)
-              .first();
-
-          if (!product) {
-
-            return json(
-              {
-                ok: false,
-                error:
-                  `Product ${productId} was not found or is inactive.`
-              },
-              404
-            );
-          }
-
-          // --------------------------------------------------
-          // GET VARIANT
-          // --------------------------------------------------
-
-          const variant =
-            await env.DB
-              .prepare(`
-                SELECT
-                  id,
-                  product_id,
-                  size,
-                  color,
-                  sku,
-                  stock_quantity
-                FROM product_variants
-                WHERE id = ?
-                  AND product_id = ?
-                LIMIT 1
-              `)
-              .bind(
-                variantId,
-                productId
-              )
-              .first();
-
-          if (!variant) {
-
-            return json(
-              {
-                ok: false,
-                error:
-                  `Selected variant for ${product.name} was not found.`
-              },
-              404
-            );
-          }
-
-          // --------------------------------------------------
-          // STOCK CHECK
-          // --------------------------------------------------
-
-          if (
-            Number(
-              variant.stock_quantity
-            ) < quantity
-          ) {
-
-            return json(
-              {
-                ok: false,
-                error:
-                  `Only ${variant.stock_quantity} unit(s) of ${product.name} are available.`
-              },
-              400
-            );
-          }
-
-          // --------------------------------------------------
-          // SERVER-SIDE PRICE
-          // --------------------------------------------------
-
-          const unitPrice =
-            Number(product.price);
-
-          const itemSubtotal =
-            unitPrice * quantity;
-
-          subtotal +=
-            itemSubtotal;
-
-          orderItems.push({
-
-            productId,
-
-            variantId,
-
-            productName:
-              product.name,
-
-            size:
-              variant.size || null,
-
-            color:
-              variant.color || null,
-
-            sku:
-              variant.sku || null,
-
-            unitPrice,
-
-            quantity,
-
-            subtotal:
-              itemSubtotal
-          });
-        }
-
-        // ----------------------------------------------------
-        // SHIPPING
-        // ----------------------------------------------------
-
-        const shippingCharge =
-          subtotal >= 2500
-            ? 0
-            : 60;
-
-        // ----------------------------------------------------
-        // DISCOUNT
-        // ----------------------------------------------------
-
-        const discount =
-          Number(
-            body.discount || 0
-          );
-
-        if (
-          !Number.isFinite(discount) ||
-          discount < 0 ||
-          discount > subtotal
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid discount amount."
-            },
-            400
-          );
-        }
-
-        // ----------------------------------------------------
-        // TOTAL
-        // ----------------------------------------------------
-
-        const total =
-          subtotal +
-          shippingCharge -
-          discount;
-
-        // ----------------------------------------------------
-        // PARTIAL PAYMENT
-        // ----------------------------------------------------
-
-        let partialPayment =
-          Number(
-            body.partialPayment || 0
-          );
-
-        if (
-          !Number.isFinite(
-            partialPayment
-          ) ||
-          partialPayment < 0
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid partial payment amount."
-            },
-            400
-          );
-        }
-
-        if (
-          partialPayment > total
-        ) {
-          partialPayment = total;
-        }
-
-        // ----------------------------------------------------
-        // PAYMENT METHOD
-        // ----------------------------------------------------
-
-        const paymentMethod =
-          body.paymentMethod ||
-          "online";
-
-        // ----------------------------------------------------
-        // CREATE UNIQUE ORDER NUMBER
-        // ----------------------------------------------------
-
-        const orderNumber =
-          `CANVO-${Date.now()}-${crypto
-            .randomUUID()
-            .slice(0, 8)
-            .toUpperCase()}`;
-
-        // ----------------------------------------------------
-        // CREATE ORDER
-        // ----------------------------------------------------
-
-        const orderResult =
-          await env.DB
-            .prepare(`
-              INSERT INTO orders (
-                order_number,
-                customer_name,
-                phone,
-                district,
-                thana,
-                address,
-                note,
-                subtotal,
-                shipping_charge,
-                discount,
-                total,
-                partial_payment,
-                payment_method,
-                payment_status,
-                order_status
-              )
-              VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?
-              )
-            `)
-            .bind(
-
-              orderNumber,
-
-              customer.name,
-
-              customer.phone,
-
-              customer.district,
-
-              customer.thana,
-
-              customer.address,
-
-              customer.note || "",
-
-              subtotal,
-
-              shippingCharge,
-
-              discount,
-
-              total,
-
-              partialPayment,
-
-              paymentMethod,
-
-              "pending",
-
-              "pending"
-
-            )
-            .run();
-
-        const orderId =
-          orderResult.meta.last_row_id;
-
-        // ----------------------------------------------------
-        // INSERT ITEMS + DECREASE STOCK
-        // ----------------------------------------------------
-
-        const statements = [];
-
-        for (
-          const item of orderItems
-        ) {
-
-          // INSERT ORDER ITEM
-
-          statements.push(
-
-            env.DB
-              .prepare(`
-                INSERT INTO order_items (
-                  order_id,
-                  product_id,
-                  variant_id,
-                  product_name,
-                  size,
-                  color,
-                  sku,
-                  unit_price,
-                  quantity,
-                  subtotal
-                )
-                VALUES (
-                  ?, ?, ?, ?, ?, ?,
-                  ?, ?, ?, ?
-                )
-              `)
-              .bind(
-
-                orderId,
-
-                item.productId,
-
-                item.variantId,
-
-                item.productName,
-
-                item.size,
-
-                item.color,
-
-                item.sku,
-
-                item.unitPrice,
-
-                item.quantity,
-
-                item.subtotal
-
-              )
-          );
-
-          // DECREASE STOCK
-
-          statements.push(
-
-            env.DB
-              .prepare(`
-                UPDATE product_variants
-                SET stock_quantity =
-                  stock_quantity - ?
-                WHERE id = ?
-                  AND stock_quantity >= ?
-              `)
-              .bind(
-
-                item.quantity,
-
-                item.variantId,
-
-                item.quantity
-
-              )
-          );
-        }
-
-        // ----------------------------------------------------
-        // EXECUTE ITEM + STOCK QUERIES
-        // ----------------------------------------------------
-
-        await env.DB.batch(
-          statements
-        );
-
-        // ----------------------------------------------------
-        // SUCCESS
-        // ----------------------------------------------------
-
-        return json(
-          {
-            ok: true,
-
-            message:
-              "Order created successfully.",
-
-            order: {
-
-              id:
-                orderId,
-
-              orderNumber:
-                orderNumber,
-
-              subtotal:
-                subtotal,
-
-              shippingCharge:
-                shippingCharge,
-
-              discount:
-                discount,
-
-              total:
-                total,
-
-              partialPayment:
-                partialPayment,
-
-              paymentStatus:
-                "pending",
-
-              orderStatus:
-                "pending"
-
-            }
-          },
-          201
-        );
-
-      } catch (error) {
-
-        console.error(
-          "Create order error:",
-          error
-        );
-
-        return json(
-          {
-            ok: false,
-
-            error:
-              "Unable to create order.",
-
-            details:
-              error.message
-          },
-          500
-        );
-      }
     }
 
-    // ========================================================
-    // 4. FIRST ADMIN SETUP
-    // ========================================================
 
-    if (
-      url.pathname ===
-        "/api/admin/setup" &&
-      request.method === "POST"
-    ) {
+    if (!items.length) {
 
-      try {
+      return json(
+        {
+          ok: false,
+          error:
+            "Order must contain at least one item."
+        },
+        400
+      );
 
-        const adminCount =
-          await env.DB
-            .prepare(
-              "SELECT COUNT(*) AS count FROM admins"
-            )
-            .first();
-
-        const existingAdmins =
-          Number(
-            adminCount?.count || 0
-          );
-
-        if (
-          existingAdmins > 0
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Admin setup is already completed."
-            },
-            403
-          );
-        }
-
-        const setupKey =
-          request.headers.get(
-            "X-Admin-Setup-Key"
-          );
-
-        if (
-          !setupKey ||
-          setupKey !==
-            env.ADMIN_SETUP_KEY
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid setup key."
-            },
-            401
-          );
-        }
-
-        let body;
-
-        try {
-
-          body =
-            await request.json();
-
-        } catch {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid JSON request body."
-            },
-            400
-          );
-        }
-
-        const name =
-          body?.name?.trim();
-
-        const email =
-          body?.email
-            ?.trim()
-            .toLowerCase();
-
-        const password =
-          body?.password;
-
-        if (
-          !name ||
-          !email ||
-          !password
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Name, email and password are required."
-            },
-            400
-          );
-        }
-
-        if (
-          password.length < 10
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Password must be at least 10 characters."
-            },
-            400
-          );
-        }
-
-        const passwordHash =
-          await hashPassword(
-            password
-          );
-
-        const result =
-          await env.DB
-            .prepare(`
-              INSERT INTO admins (
-                name,
-                email,
-                password_hash,
-                role,
-                status
-              )
-              VALUES (
-                ?, ?, ?, 'admin', 'active'
-              )
-            `)
-            .bind(
-              name,
-              email,
-              passwordHash
-            )
-            .run();
-
-        return json({
-          ok: true,
-          message:
-            "Admin account created successfully.",
-          admin_id:
-            result.meta.last_row_id
-        });
-
-      } catch (error) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              error.message
-          },
-          500
-        );
-      }
     }
 
-    // ========================================================
-    // 5. ADMIN LOGIN
-    // ========================================================
 
-    if (
-      url.pathname ===
-        "/api/admin/login" &&
-      request.method === "POST"
-    ) {
+    // ----------------------------------------------------
+    // FIND OR CREATE CUSTOMER
+    // ----------------------------------------------------
 
-      try {
+    let customerRecord =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            name,
+            phone
+          FROM customers
+          WHERE phone = ?
+          LIMIT 1
+        `)
+        .bind(
+          customer.phone
+        )
+        .first();
 
-        const body =
-          await request.json();
 
-        const email =
-          body?.email
-            ?.trim()
-            .toLowerCase();
+    let customerId;
 
-        const password =
-          body?.password;
 
-        if (
-          !email ||
-          !password
-        ) {
+    if (customerRecord) {
 
-          return json(
-            {
-              ok: false,
-              error:
-                "Email and password are required."
-            },
-            400
-          );
-        }
+      customerId =
+        customerRecord.id;
 
-        const admin =
-          await env.DB
-            .prepare(`
-              SELECT
-                id,
-                name,
-                email,
-                password_hash,
-                role,
-                status
-              FROM admins
-              WHERE email = ?
-              LIMIT 1
-            `)
-            .bind(email)
-            .first();
 
-        if (!admin) {
+      // Update customer's latest information
+      await env.DB
+        .prepare(`
+          UPDATE customers
+          SET
+            name = ?,
+            address = ?,
+            city = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `)
+        .bind(
+          customer.name,
+          customer.address,
+          customer.district,
+          customerId
+        )
+        .run();
 
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid email or password."
-            },
-            401
-          );
-        }
+    } else {
 
-        if (
-          admin.status !==
-          "active"
-        ) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Admin account is inactive."
-            },
-            403
-          );
-        }
-
-        const passwordCorrect =
-          await verifyPassword(
-            password,
-            admin.password_hash
-          );
-
-        if (!passwordCorrect) {
-
-          return json(
-            {
-              ok: false,
-              error:
-                "Invalid email or password."
-            },
-            401
-          );
-        }
-
-        const sessionToken =
-          createSessionToken();
-
-        const sessionHash =
-          await hashSessionToken(
-            sessionToken
-          );
-
-        const expiresAt =
-          new Date(
-            Date.now() +
-            SESSION_DAYS *
-            24 *
-            60 *
-            60 *
-            1000
-          ).toISOString();
-
+      const customerResult =
         await env.DB
           .prepare(`
-            INSERT INTO admin_sessions (
-              admin_id,
-              session_token_hash,
-              expires_at
+            INSERT INTO customers (
+              name,
+              phone,
+              address,
+              city,
+              country,
+              status
             )
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
           `)
           .bind(
-            admin.id,
-            sessionHash,
-            expiresAt
+            customer.name,
+            customer.phone,
+            customer.address,
+            customer.district,
+            "Bangladesh",
+            "active"
           )
           .run();
 
-        const cookie =
-          `${SESSION_COOKIE}=${sessionToken}; ` +
-          `HttpOnly; ` +
-          `Secure; ` +
-          `SameSite=Lax; ` +
-          `Path=/; ` +
-          `Max-Age=${SESSION_DAYS * 24 * 60 * 60}`;
 
-        return json(
-          {
-            ok: true,
-            message:
-              "Login successful.",
-            admin: {
-              id: admin.id,
-              name: admin.name,
-              email: admin.email,
-              role: admin.role
-            }
-          },
-          200,
-          {
-            "Set-Cookie":
-              cookie
-          }
-        );
+      customerId =
+        customerResult.meta.last_row_id;
 
-      } catch (error) {
+    }
+
+
+    // ----------------------------------------------------
+    // CHECK PRODUCTS + VARIANTS + STOCK
+    // ----------------------------------------------------
+
+    const orderItems = [];
+
+    let subtotal = 0;
+
+
+    for (const item of items) {
+
+      const productId =
+        Number(item.productId);
+
+      const variantId =
+        Number(item.variantId);
+
+      const quantity =
+        Number(item.quantity);
+
+
+      if (
+        !Number.isInteger(productId) ||
+        !Number.isInteger(variantId) ||
+        !Number.isInteger(quantity) ||
+        quantity <= 0
+      ) {
 
         return json(
           {
             ok: false,
             error:
-              error.message
+              "Invalid product, variant or quantity."
           },
-          500
+          400
         );
+
       }
+
+
+      // --------------------------------------------------
+      // GET ACTIVE PRODUCT
+      // --------------------------------------------------
+
+      const product =
+        await env.DB
+          .prepare(`
+            SELECT
+              id,
+              name,
+              price,
+              status
+            FROM products
+            WHERE id = ?
+              AND status = 'active'
+            LIMIT 1
+          `)
+          .bind(
+            productId
+          )
+          .first();
+
+
+      if (!product) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Product ${productId} was not found or is inactive.`
+          },
+          404
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // GET VARIANT
+      // --------------------------------------------------
+
+      const variant =
+        await env.DB
+          .prepare(`
+            SELECT
+              id,
+              product_id,
+              size,
+              color,
+              sku,
+              stock_quantity
+            FROM product_variants
+            WHERE id = ?
+              AND product_id = ?
+          `)
+          .bind(
+            variantId,
+            productId
+          )
+          .first();
+
+
+      if (!variant) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Selected variant for ${product.name} was not found.`
+          },
+          404
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // STOCK CHECK
+      // --------------------------------------------------
+
+      if (
+        Number(variant.stock_quantity) <
+        quantity
+      ) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              `Only ${variant.stock_quantity} unit(s) of ${product.name} are available.`
+          },
+          400
+        );
+
+      }
+
+
+      // --------------------------------------------------
+      // SERVER-SIDE PRICE
+      // --------------------------------------------------
+
+      const unitPrice =
+        Number(product.price);
+
+      const itemSubtotal =
+        unitPrice * quantity;
+
+
+      subtotal +=
+        itemSubtotal;
+
+
+      orderItems.push({
+
+        productId,
+
+        variantId,
+
+        productName:
+          product.name,
+
+        size:
+          variant.size || null,
+
+        color:
+          variant.color || null,
+
+        unitPrice,
+
+        quantity,
+
+        subtotal:
+          itemSubtotal
+
+      });
+
     }
+
+
+    // ----------------------------------------------------
+    // SHIPPING
+    // ----------------------------------------------------
+
+    const shippingFee =
+      subtotal >= 2500
+        ? 0
+        : 60;
+
+
+    // ----------------------------------------------------
+    // DISCOUNT
+    // ----------------------------------------------------
+
+    const discount =
+      Number(
+        body.discount || 0
+      );
+
+
+    if (
+      !Number.isFinite(discount) ||
+      discount < 0 ||
+      discount > subtotal
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Invalid discount amount."
+        },
+        400
+      );
+
+    }
+
+
+    // ----------------------------------------------------
+    // TOTAL
+    // ----------------------------------------------------
+
+    const totalAmount =
+      subtotal +
+      shippingFee -
+      discount;
+
+
+    // ----------------------------------------------------
+    // PARTIAL PAYMENT
+    // ----------------------------------------------------
+
+    let partialPayment =
+      Number(
+        body.partialPayment || 0
+      );
+
+
+    if (
+      !Number.isFinite(partialPayment) ||
+      partialPayment < 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Invalid partial payment amount."
+        },
+        400
+      );
+
+    }
+
+
+    if (
+      partialPayment > totalAmount
+    ) {
+
+      partialPayment =
+        totalAmount;
+
+    }
+
+
+    // ----------------------------------------------------
+    // PAYMENT METHOD
+    // ----------------------------------------------------
+
+    const paymentMethod =
+      body.paymentMethod ||
+      "online";
+
+
+    // ----------------------------------------------------
+    // CREATE UNIQUE ORDER NUMBER
+    // ----------------------------------------------------
+
+    const orderNumber =
+      `CANVO-${Date.now()}-${crypto
+        .randomUUID()
+        .slice(0, 8)
+        .toUpperCase()}`;
+
+
+    // ----------------------------------------------------
+    // SHIPPING ADDRESS
+    // ----------------------------------------------------
+    // Current orders table has no separate "thana" column.
+    // Therefore we store:
+    // shipping_city    = district
+    // shipping_address = thana + address
+    // ----------------------------------------------------
+
+    const shippingAddress =
+      `${customer.thana}, ${customer.address}`;
+
+
+    // ----------------------------------------------------
+    // CREATE ORDER
+    // ----------------------------------------------------
+
+    const orderResult =
+      await env.DB
+        .prepare(`
+          INSERT INTO orders (
+            order_number,
+            customer_id,
+            subtotal,
+            shipping_fee,
+            total_amount,
+            payment_method,
+            payment_status,
+            order_status,
+            shipping_name,
+            shipping_phone,
+            shipping_address,
+            shipping_city,
+            notes,
+            discount,
+            partial_payment
+          )
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          )
+        `)
+        .bind(
+
+          orderNumber,
+
+          customerId,
+
+          subtotal,
+
+          shippingFee,
+
+          totalAmount,
+
+          paymentMethod,
+
+          "pending",
+
+          "pending",
+
+          customer.name,
+
+          customer.phone,
+
+          shippingAddress,
+
+          customer.district,
+
+          customer.note || "",
+
+          discount,
+
+          partialPayment
+
+        )
+        .run();
+
+
+    const orderId =
+      orderResult.meta.last_row_id;
+
+
+    // ----------------------------------------------------
+    // INSERT ORDER ITEMS + DECREASE STOCK
+    // ----------------------------------------------------
+
+    const statements = [];
+
+
+    for (const item of orderItems) {
+
+      // ----------------------------------------------
+      // INSERT ORDER ITEM
+      // ----------------------------------------------
+
+      statements.push(
+
+        env.DB
+          .prepare(`
+            INSERT INTO order_items (
+              order_id,
+              product_id,
+              variant_id,
+              product_name,
+              size,
+              color,
+              quantity,
+              unit_price,
+              subtotal
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .bind(
+
+            orderId,
+
+            item.productId,
+
+            item.variantId,
+
+            item.productName,
+
+            item.size,
+
+            item.color,
+
+            item.quantity,
+
+            item.unitPrice,
+
+            item.subtotal
+
+          )
+
+      );
+
+
+      // ----------------------------------------------
+      // DECREASE STOCK
+      // ----------------------------------------------
+
+      statements.push(
+
+        env.DB
+          .prepare(`
+            UPDATE product_variants
+            SET
+              stock_quantity =
+                stock_quantity - ?,
+              updated_at =
+                CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND stock_quantity >= ?
+          `)
+          .bind(
+
+            item.quantity,
+
+            item.variantId,
+
+            item.quantity
+
+          )
+
+      );
+
+    }
+
+
+    await env.DB.batch(
+      statements
+    );
+
+
+    // ----------------------------------------------------
+    // SUCCESS
+    // ----------------------------------------------------
+
+    return json(
+      {
+        ok: true,
+
+        message:
+          "Order created successfully.",
+
+        order: {
+
+          id:
+            orderId,
+
+          orderNumber:
+            orderNumber,
+
+          customerId:
+            customerId,
+
+          subtotal:
+            subtotal,
+
+          shippingFee:
+            shippingFee,
+
+          discount:
+            discount,
+
+          total:
+            totalAmount,
+
+          partialPayment:
+            partialPayment,
+
+          paymentMethod:
+            paymentMethod,
+
+          paymentStatus:
+            "pending",
+
+          orderStatus:
+            "pending"
+
+        }
+
+      },
+      201
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Create order error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+
+        error:
+          "Unable to create order.",
+
+        details:
+          error.message
+      },
+      500
+    );
+
+  }
+
+}
+
 
     // ========================================================
     // 6. ADMIN SESSION CHECK
