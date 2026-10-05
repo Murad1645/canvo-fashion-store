@@ -1329,7 +1329,57 @@
 
   </div>
 
+<!-- =========================================
+     ORDER DETAILS MODAL
+     ========================================= -->
 
+<div
+  class="modal"
+  id="orderDetailsModal"
+>
+
+  <div class="modal-box large">
+
+    <div class="modal-header">
+
+      <div>
+
+        <h3>
+          Order Details
+        </h3>
+
+        <p id="orderDetailsOrderNumber">
+          Loading...
+        </p>
+
+      </div>
+
+
+      <button
+        class="close-modal"
+        onclick="closeOrderDetailsModal()"
+        type="button"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <!-- ORDER DETAILS -->
+
+    <div id="orderDetailsContent">
+
+      <div class="loading">
+        Loading order details...
+      </div>
+
+    </div>
+
+
+  </div>
+
+</div>
 
   <script>
 
