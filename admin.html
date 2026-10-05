@@ -2077,7 +2077,478 @@ async function loadOrders() {
 
 }
 
+// =========================================
+// VIEW ORDER DETAILS
+// =========================================
 
+async function viewOrder(orderId) {
+
+  const modal =
+    document.getElementById(
+      "orderDetailsModal"
+    );
+
+  const orderNumber =
+    document.getElementById(
+      "orderDetailsOrderNumber"
+    );
+
+  const content =
+    document.getElementById(
+      "orderDetailsContent"
+    );
+
+
+  // Open modal
+  modal.classList.add("show");
+
+
+  // Initial loading state
+  orderNumber.textContent =
+    "Loading...";
+
+  content.innerHTML = `
+    <div class="loading">
+      Loading order details...
+    </div>
+  `;
+
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/admin/orders/${orderId}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load order details."
+      );
+
+    }
+
+
+    const order =
+      data.order;
+
+
+    const items =
+      order.items || [];
+
+
+    // -----------------------------------------
+    // ORDER NUMBER
+    // -----------------------------------------
+
+    orderNumber.textContent =
+      order.order_number || "-";
+
+
+    // -----------------------------------------
+    // ORDER ITEMS
+    // -----------------------------------------
+
+    const itemsHtml =
+      items.length > 0
+
+        ? `
+          <div class="table-wrapper">
+
+            <table>
+
+              <thead>
+
+                <tr>
+                  <th>Product</th>
+                  <th>Size</th>
+                  <th>Color</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Subtotal</th>
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                ${items.map(item => `
+
+                  <tr>
+
+                    <td>
+                      <strong>
+                        ${escapeHtml(
+                          item.product_name
+                        )}
+                      </strong>
+                    </td>
+
+                    <td>
+                      ${escapeHtml(
+                        item.size || "-"
+                      )}
+                    </td>
+
+                    <td>
+                      ${escapeHtml(
+                        item.color || "-"
+                      )}
+                    </td>
+
+                    <td>
+                      ${Number(
+                        item.quantity || 0
+                      )}
+                    </td>
+
+                    <td>
+                      ৳${Number(
+                        item.unit_price || 0
+                      ).toLocaleString()}
+                    </td>
+
+                    <td>
+                      ৳${Number(
+                        item.subtotal || 0
+                      ).toLocaleString()}
+                    </td>
+
+                  </tr>
+
+                `).join("")}
+
+              </tbody>
+
+            </table>
+
+          </div>
+        `
+
+        : `
+          <div class="empty">
+            No items found for this order.
+          </div>
+        `;
+
+
+    // -----------------------------------------
+    // FULL ORDER DETAILS
+    // -----------------------------------------
+
+    content.innerHTML = `
+
+      <!-- CUSTOMER -->
+
+      <div
+        style="
+          margin-bottom:25px;
+          padding-bottom:20px;
+          border-bottom:1px solid #e5e7eb;
+        "
+      >
+
+        <h4
+          style="
+            margin-bottom:12px;
+            font-size:16px;
+          "
+        >
+          Customer Information
+        </h4>
+
+
+        <p>
+          <strong>Name:</strong>
+          ${escapeHtml(
+            order.shipping_name || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>Phone:</strong>
+          ${escapeHtml(
+            order.shipping_phone || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>District:</strong>
+          ${escapeHtml(
+            order.shipping_city || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>Address:</strong>
+          ${escapeHtml(
+            order.shipping_address || "-"
+          )}
+        </p>
+
+
+        ${
+          order.notes
+            ? `
+              <p style="margin-top:6px;">
+                <strong>Note:</strong>
+                ${escapeHtml(
+                  order.notes
+                )}
+              </p>
+            `
+            : ""
+        }
+
+      </div>
+
+
+      <!-- STATUS -->
+
+      <div
+        style="
+          margin-bottom:25px;
+          padding-bottom:20px;
+          border-bottom:1px solid #e5e7eb;
+        "
+      >
+
+        <h4
+          style="
+            margin-bottom:12px;
+            font-size:16px;
+          "
+        >
+          Order Information
+        </h4>
+
+
+        <p>
+          <strong>Order Status:</strong>
+          ${escapeHtml(
+            order.order_status || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>Payment Method:</strong>
+          ${escapeHtml(
+            order.payment_method || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>Payment Status:</strong>
+          ${escapeHtml(
+            order.payment_status || "-"
+          )}
+        </p>
+
+
+        <p style="margin-top:6px;">
+          <strong>Order Date:</strong>
+          ${
+            order.created_at
+              ? new Date(
+                  order.created_at
+                ).toLocaleString()
+              : "-"
+          }
+        </p>
+
+      </div>
+
+
+      <!-- PRODUCTS -->
+
+      <div
+        style="
+          margin-bottom:25px;
+        "
+      >
+
+        <h4
+          style="
+            margin-bottom:12px;
+            font-size:16px;
+          "
+        >
+          Products
+        </h4>
+
+        ${itemsHtml}
+
+      </div>
+
+
+      <!-- SUMMARY -->
+
+      <div
+        style="
+          margin-left:auto;
+          max-width:350px;
+          border-top:1px solid #e5e7eb;
+          padding-top:15px;
+        "
+      >
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:8px;
+          "
+        >
+          <span>Subtotal</span>
+
+          <strong>
+            ৳${Number(
+              order.subtotal || 0
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:8px;
+          "
+        >
+          <span>Shipping</span>
+
+          <strong>
+            ৳${Number(
+              order.shipping_fee || 0
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:8px;
+          "
+        >
+          <span>Discount</span>
+
+          <strong>
+            - ৳${Number(
+              order.discount || 0
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:8px;
+          "
+        >
+          <span>Partial Payment</span>
+
+          <strong>
+            ৳${Number(
+              order.partial_payment || 0
+            ).toLocaleString()}
+          </strong>
+        </div>
+
+
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            margin-top:12px;
+            padding-top:12px;
+            border-top:1px solid #e5e7eb;
+            font-size:17px;
+          "
+        >
+
+          <strong>
+            Total
+          </strong>
+
+          <strong>
+            ৳${Number(
+              order.total_amount || 0
+            ).toLocaleString()}
+          </strong>
+
+        </div>
+
+      </div>
+
+    `;
+
+
+  } catch (error) {
+
+    console.error(
+      "View order error:",
+      error
+    );
+
+
+    content.innerHTML = `
+
+      <div class="form-message error">
+        ${
+          escapeHtml(
+            error.message ||
+            "Failed to load order details."
+          )
+        }
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+
+// =========================================
+// CLOSE ORDER DETAILS MODAL
+// =========================================
+
+function closeOrderDetailsModal() {
+
+  document
+    .getElementById(
+      "orderDetailsModal"
+    )
+    .classList.remove(
+      "show"
+    );
+
+}
     // =========================================
     // PRODUCT MODAL
     // =========================================
