@@ -1991,12 +1991,16 @@ function showSection(section) {
 
    // Load section data
   if (section === "products") {
-    loadProducts();
-  }
+  loadProducts();
+}
 
-  if (section === "orders") {
-    loadOrders();
-  }
+if (section === "orders") {
+  loadOrders();
+}
+
+if (section === "customers") {
+  loadCustomers();
+}
 
 }
 
@@ -2065,7 +2069,188 @@ async function updateOrderCount() {
 
 }
 
+// =========================================
+// CUSTOMER MANAGEMENT
+// =========================================
 
+async function loadCustomers() {
+
+  const table =
+    document.getElementById("customersTable");
+
+  if (!table) return;
+
+
+  table.innerHTML = `
+    <tr>
+      <td colspan="7" class="loading">
+        Loading customers...
+      </td>
+    </tr>
+  `;
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/customers",
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load customers."
+      );
+
+    }
+
+
+    const customers =
+      data.customers || [];
+
+
+    // Update dashboard customer count
+    const customerCount =
+      document.getElementById(
+        "customerCount"
+      );
+
+    if (customerCount) {
+
+      customerCount.textContent =
+        customers.length;
+
+    }
+
+
+    if (customers.length === 0) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="7"
+            class="empty"
+          >
+            No customers found.
+          </td>
+        </tr>
+      `;
+
+      return;
+
+    }
+
+
+    table.innerHTML =
+      customers
+        .map(customer => `
+
+          <tr>
+
+            <td>
+              ${Number(customer.id)}
+            </td>
+
+
+            <td>
+              <strong>
+                ${escapeHtml(
+                  customer.name || "-"
+                )}
+              </strong>
+            </td>
+
+
+            <td>
+              ${escapeHtml(
+                customer.phone || "-"
+              )}
+            </td>
+
+
+            <td>
+              ${escapeHtml(
+                customer.email || "-"
+              )}
+            </td>
+
+
+            <td>
+              ${escapeHtml(
+                customer.city || "-"
+              )}
+            </td>
+
+
+            <td>
+
+              <span
+                class="status ${
+                  customer.status === "active"
+                    ? "active"
+                    : "inactive"
+                }"
+              >
+                ${escapeHtml(
+                  customer.status || "-"
+                )}
+              </span>
+
+            </td>
+
+
+            <td>
+              ${
+                customer.created_at
+                  ? new Date(
+                      customer.created_at
+                    ).toLocaleDateString()
+                  : "-"
+              }
+            </td>
+
+          </tr>
+
+        `)
+        .join("");
+
+
+  } catch (error) {
+
+    console.error(
+      "Load customers error:",
+      error
+    );
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="7"
+          class="loading"
+        >
+          Failed to load customers.
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
 
 // =========================================
 // ORDER MANAGEMENT
