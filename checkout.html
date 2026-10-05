@@ -1460,97 +1460,325 @@ localStorage.setItem(
     }
 
 
-    /* =====================================================
-       PLACE ORDER
-    ===================================================== */
+/* =====================================================
+   PLACE ORDER
+===================================================== */
 
-    function placeOrder() {
+async function placeOrder() {
 
-      if (!checkoutCart.length) {
+  if (!checkoutCart.length) {
 
-        alert(
-          "Your cart is empty."
-        );
+    alert(
+      "Your cart is empty."
+    );
 
-        return;
+    return;
 
-      }
-
-
-      const name =
-        document.getElementById(
-          "fullName"
-        ).value.trim();
+  }
 
 
-      const phone =
-        document.getElementById(
-          "phone"
-        ).value.trim();
+  const name =
+    document.getElementById(
+      "fullName"
+    ).value.trim();
 
 
-      const district =
-        document.getElementById(
-          "district"
-        ).value;
+  const phone =
+    document.getElementById(
+      "phone"
+    ).value.trim();
 
 
-      const thana =
-        document.getElementById(
-          "thana"
-        ).value.trim();
+  const district =
+    document.getElementById(
+      "district"
+    ).value;
 
 
-      const address =
-        document.getElementById(
-          "address"
-        ).value.trim();
+  const thana =
+    document.getElementById(
+      "thana"
+    ).value.trim();
 
 
-      const terms =
-        document.getElementById(
-          "terms"
-        ).checked;
+  const address =
+    document.getElementById(
+      "address"
+    ).value.trim();
 
 
-      if (
-        !name ||
-        !phone ||
-        !district ||
-        !thana ||
-        !address
-      ) {
-
-        alert(
-          "Please complete all required shipping information."
-        );
-
-        return;
-
-      }
+  const noteElement =
+    document.getElementById(
+      "note"
+    );
 
 
-      if (!terms) {
-
-        alert(
-          "Please agree to the Return Policy and Terms & Conditions."
-        );
-
-        return;
-
-      }
+  const note =
+    noteElement
+      ? noteElement.value.trim()
+      : "";
 
 
-      /*
-       * Real order submission will be
-       * connected to D1 in the next step.
-       */
+  const terms =
+    document.getElementById(
+      "terms"
+    ).checked;
 
-      alert(
-        "Checkout information is ready. Order system will be connected next."
+
+  if (
+    !name ||
+    !phone ||
+    !district ||
+    !thana ||
+    !address
+  ) {
+
+    alert(
+      "Please complete all required shipping information."
+    );
+
+    return;
+
+  }
+
+
+  if (!terms) {
+
+    alert(
+      "Please agree to the Return Policy and Terms & Conditions."
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * Get partial payment amount
+   */
+
+  const partialPaymentInput =
+    document.querySelector(
+      'input[type="number"]'
+    );
+
+
+  const partialPayment =
+    partialPaymentInput
+      ? Number(
+          partialPaymentInput.value || 0
+        )
+      : 0;
+
+
+  /*
+   * Prepare order items
+   */
+
+  const items =
+    checkoutCart.map(
+      item => ({
+
+        productId:
+          Number(item.productId),
+
+        variantId:
+          Number(item.variantId),
+
+        quantity:
+          Number(item.quantity)
+
+      })
+    );
+
+
+  /*
+   * Find PLACE ORDER button
+   */
+
+  const button =
+    document.querySelector(
+      'button[onclick="placeOrder()"]'
+    );
+
+
+  if (button) {
+
+    button.disabled = true;
+
+    button.textContent =
+      "PLACING ORDER...";
+
+  }
+
+
+  try {
+
+    /*
+     * Send order to Cloudflare Worker
+     */
+
+    const response =
+      await fetch(
+        "/api/orders",
+        {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              customer: {
+
+                name,
+
+                phone,
+
+                district,
+
+                thana,
+
+                address,
+
+                note
+
+              },
+
+              items,
+
+              discount:
+                Number(
+                  couponDiscount || 0
+                ),
+
+              partialPayment,
+
+              paymentMethod:
+                "online"
+
+            })
+
+        }
+      );
+
+
+    /*
+     * Read API response
+     */
+
+    const data =
+      await response.json();
+
+
+    /*
+     * Check API response
+     */
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Unable to place order."
       );
 
     }
+
+
+    /*
+     * SUCCESS
+     */
+
+    alert(
+      `Order placed successfully!\n\nOrder Number: ${data.order.orderNumber}\nTotal: ৳${Number(data.order.total).toLocaleString()}`
+    );
+
+
+    /*
+     * Detect Buy Now checkout
+     */
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const isBuyNow =
+      params.get("buyNow") === "1";
+
+
+    /*
+     * Clear correct storage
+     */
+
+    if (isBuyNow) {
+
+      localStorage.removeItem(
+        "canvoBuyNow"
+      );
+
+    } else {
+
+      localStorage.removeItem(
+        "canvoCart"
+      );
+
+    }
+
+
+    /*
+     * Clear checkout items
+     */
+
+    checkoutCart = [];
+
+
+    /*
+     * Return to home page
+     */
+
+    window.location.href =
+      "index.html";
+
+
+  } catch (error) {
+
+    console.error(
+      "Place order error:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Unable to place order. Please try again."
+    );
+
+
+    /*
+     * Enable button again
+     */
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.textContent =
+        "PLACE ORDER";
+
+    }
+
+  }
+
+}
 
 
     /* =====================================================
