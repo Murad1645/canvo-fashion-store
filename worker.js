@@ -1,43 +1,21 @@
 // ============================================================
 // CANVO E-COMMERCE BACKEND
 // Cloudflare Worker + D1
-//
-// Features:
-// - Health check
-// - D1 test
-// - First admin setup
-// - Admin login
-// - Admin session authentication
-// - Admin logout
-// - Get active products
-// - Admin product list
-// - Admin create product
-// - Existing static website serving
-// ============================================================
-
-
-// ============================================================
-// CONFIGURATION
 // ============================================================
 
 const SESSION_COOKIE = "canvo_admin_session";
-
 const SESSION_DAYS = 7;
-
 
 // ============================================================
 // PASSWORD HASHING
 // ============================================================
 
 async function hashPassword(password) {
-
   const encoder = new TextEncoder();
 
-  const salt =
-    crypto.getRandomValues(
-      new Uint8Array(16)
-    );
-
+  const salt = crypto.getRandomValues(
+    new Uint8Array(16)
+  );
 
   const keyMaterial =
     await crypto.subtle.importKey(
@@ -48,12 +26,11 @@ async function hashPassword(password) {
       ["deriveBits"]
     );
 
-
   const derivedBits =
     await crypto.subtle.deriveBits(
       {
         name: "PBKDF2",
-        salt: salt,
+        salt,
         iterations: 100000,
         hash: "SHA-256"
       },
@@ -61,24 +38,13 @@ async function hashPassword(password) {
       256
     );
 
-
   const hashBytes =
     new Uint8Array(derivedBits);
 
-
-  const saltHex =
-    bytesToHex(salt);
-
-
-  const hashHex =
-    bytesToHex(hashBytes);
-
-
   return (
-    `pbkdf2$100000$${saltHex}$${hashHex}`
+    `pbkdf2$100000$${bytesToHex(salt)}$${bytesToHex(hashBytes)}`
   );
 }
-
 
 // ============================================================
 // PASSWORD VERIFY
@@ -88,12 +54,9 @@ async function verifyPassword(
   password,
   storedHash
 ) {
-
   try {
-
     const parts =
       storedHash.split("$");
-
 
     if (
       parts.length !== 4 ||
@@ -102,26 +65,20 @@ async function verifyPassword(
       return false;
     }
 
-
     const iterations =
       Number(parts[1]);
-
 
     const saltHex =
       parts[2];
 
-
     const expectedHashHex =
       parts[3];
-
 
     const salt =
       hexToBytes(saltHex);
 
-
     const encoder =
       new TextEncoder();
-
 
     const keyMaterial =
       await crypto.subtle.importKey(
@@ -132,27 +89,23 @@ async function verifyPassword(
         ["deriveBits"]
       );
 
-
     const derivedBits =
       await crypto.subtle.deriveBits(
         {
           name: "PBKDF2",
-          salt: salt,
-          iterations: iterations,
+          salt,
+          iterations,
           hash: "SHA-256"
         },
         keyMaterial,
         256
       );
 
-
     const actualHash =
       new Uint8Array(derivedBits);
 
-
     const actualHashHex =
       bytesToHex(actualHash);
-
 
     return timingSafeEqual(
       actualHashHex,
@@ -160,19 +113,15 @@ async function verifyPassword(
     );
 
   } catch {
-
     return false;
-
   }
 }
-
 
 // ============================================================
 // HEX HELPERS
 // ============================================================
 
 function bytesToHex(bytes) {
-
   return Array.from(bytes)
     .map(
       byte =>
@@ -183,99 +132,70 @@ function bytesToHex(bytes) {
     .join("");
 }
 
-
 function hexToBytes(hex) {
-
   const bytes =
     new Uint8Array(
       hex.length / 2
     );
-
 
   for (
     let i = 0;
     i < hex.length;
     i += 2
   ) {
-
     bytes[i / 2] =
       parseInt(
         hex.substring(i, i + 2),
         16
       );
-
   }
-
 
   return bytes;
 }
 
-
 // ============================================================
-// TIMING SAFE STRING COMPARISON
+// TIMING SAFE COMPARISON
 // ============================================================
 
-function timingSafeEqual(
-  a,
-  b
-) {
-
+function timingSafeEqual(a, b) {
   if (a.length !== b.length) {
     return false;
   }
 
-
   let result = 0;
-
 
   for (
     let i = 0;
     i < a.length;
     i++
   ) {
-
     result |=
       a.charCodeAt(i) ^
       b.charCodeAt(i);
-
   }
-
 
   return result === 0;
 }
 
-
 // ============================================================
-// RANDOM SESSION TOKEN
+// SESSION TOKEN
 // ============================================================
 
 function createSessionToken() {
-
   const bytes =
     crypto.getRandomValues(
       new Uint8Array(32)
     );
 
-
   return bytesToHex(bytes);
 }
 
-
-// ============================================================
-// HASH SESSION TOKEN
-// ============================================================
-
-async function hashSessionToken(
-  token
-) {
-
+async function hashSessionToken(token) {
   const encoder =
     new TextEncoder();
 
-
   const data =
     encoder.encode(token);
-
 
   const hashBuffer =
     await crypto.subtle.digest(
@@ -283,85 +203,63 @@ async function hashSessionToken(
       data
     );
 
-
   return bytesToHex(
     new Uint8Array(hashBuffer)
   );
 }
 
-
 // ============================================================
-// COOKIE PARSER
+// COOKIE
 // ============================================================
 
-function getCookie(
-  request,
-  name
-) {
-
+function getCookie(request, name) {
   const cookieHeader =
     request.headers.get("Cookie");
-
 
   if (!cookieHeader) {
     return null;
   }
 
-
   const cookies =
     cookieHeader.split(";");
 
-
-  for (
-    const cookie of cookies
-  ) {
-
+  for (const cookie of cookies) {
     const [
       key,
       ...valueParts
     ] =
       cookie.trim().split("=");
 
-
     if (key === name) {
-
       return valueParts.join("=");
-
     }
-
   }
-
 
   return null;
 }
 
-
 // ============================================================
-// AUTHENTICATE ADMIN SESSION
+// AUTHENTICATE ADMIN
 // ============================================================
 
 async function getAuthenticatedAdmin(
   request,
   env
 ) {
-
   const sessionToken =
     getCookie(
       request,
       SESSION_COOKIE
     );
 
-
   if (!sessionToken) {
     return null;
   }
-
 
   const sessionHash =
     await hashSessionToken(
       sessionToken
     );
-
 
   const session =
     await env.DB
@@ -385,23 +283,19 @@ async function getAuthenticatedAdmin(
       .bind(sessionHash)
       .first();
 
-
   if (!session) {
     return null;
   }
-
 
   const expiresAt =
     new Date(
       session.expires_at
     ).getTime();
 
-
   if (
     !Number.isFinite(expiresAt) ||
     expiresAt <= Date.now()
   ) {
-
     await env.DB
       .prepare(`
         DELETE FROM admin_sessions
@@ -410,17 +304,14 @@ async function getAuthenticatedAdmin(
       .bind(session.session_id)
       .run();
 
-
     return null;
   }
-
 
   return session;
 }
 
-
 // ============================================================
-// JSON RESPONSE HELPER
+// JSON RESPONSE
 // ============================================================
 
 function json(
@@ -428,7 +319,6 @@ function json(
   status = 200,
   extraHeaders = {}
 ) {
-
   return new Response(
     JSON.stringify(data),
     {
@@ -446,7 +336,6 @@ function json(
   );
 }
 
-
 // ============================================================
 // WORKER
 // ============================================================
@@ -461,7 +350,6 @@ export default {
     const url =
       new URL(request.url);
 
-
     // ========================================================
     // 1. HEALTH CHECK
     // ========================================================
@@ -469,15 +357,12 @@ export default {
     if (
       url.pathname === "/api/health"
     ) {
-
       return json({
         ok: true,
         service: "CANVO API",
         database: "connected"
       });
-
     }
-
 
     // ========================================================
     // 2. D1 DATABASE TEST
@@ -486,7 +371,6 @@ export default {
     if (
       url.pathname === "/api/db-test"
     ) {
-
       try {
 
         const result =
@@ -495,7 +379,6 @@ export default {
               "SELECT 1 AS test"
             )
             .first();
-
 
         return json({
           ok: true,
@@ -516,596 +399,551 @@ export default {
           },
           500
         );
-
       }
-
     }
-// ========================================================
-// 3. CREATE CUSTOMER ORDER
-// ========================================================
-
-if (
-  request.method === "POST" &&
-  url.pathname === "/api/orders"
-) {
-
-  try {
-
-    const body =
-      await request.json();
-
-    const customer =
-      body.customer || {};
-
-    const items =
-      Array.isArray(body.items)
-        ? body.items
-        : [];
-
-
-    // ----------------------------------------------------
-    // BASIC VALIDATION
-    // ----------------------------------------------------
-
-    if (
-      !customer.name ||
-      !customer.phone ||
-      !customer.district ||
-      !customer.thana ||
-      !customer.address
-    ) {
-
-      return json(
-        {
-          ok: false,
-          error:
-            "Please provide all required customer information."
-        },
-        400
-      );
-
-    }
-
-
-    if (!items.length) {
-
-      return json(
-        {
-          ok: false,
-          error:
-            "Order must contain at least one item."
-        },
-        400
-      );
-
-    }
-
-
-    // ----------------------------------------------------
-    // CHECK PRODUCTS + VARIANTS + STOCK
-    // ----------------------------------------------------
-
-    const orderItems = [];
-
-    let subtotal = 0;
-
-
-    for (const item of items) {
-
-      const productId =
-        Number(item.productId);
-
-      const variantId =
-        Number(item.variantId);
-
-      const quantity =
-        Number(item.quantity);
-
-
-      if (
-        !Number.isInteger(productId) ||
-        !Number.isInteger(variantId) ||
-        !Number.isInteger(quantity) ||
-        quantity <= 0
-      ) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              "Invalid product, variant or quantity."
-          },
-          400
-        );
-
-      }
-
-
-      // --------------------------------------------------
-      // GET PRODUCT
-      // --------------------------------------------------
-
-      const product =
-        await env.DB
-          .prepare(
-            `
-            SELECT
-              id,
-              name,
-              price,
-              active
-            FROM products
-            WHERE id = ?
-            `
-          )
-          .bind(productId)
-          .first();
-
-
-      if (!product) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              `Product ${productId} was not found.`
-          },
-          404
-        );
-
-      }
-
-
-      if (!product.active) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              `${product.name} is not available.`
-          },
-          400
-        );
-
-      }
-
-
-      // --------------------------------------------------
-      // GET VARIANT
-      // --------------------------------------------------
-
-      const variant =
-        await env.DB
-          .prepare(
-            `
-            SELECT
-              id,
-              product_id,
-              size,
-              color,
-              sku,
-              stock_quantity
-            FROM product_variants
-            WHERE id = ?
-              AND product_id = ?
-            `
-          )
-          .bind(
-            variantId,
-            productId
-          )
-          .first();
-
-
-      if (!variant) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              `Selected variant for ${product.name} was not found.`
-          },
-          404
-        );
-
-      }
-
-
-      // --------------------------------------------------
-      // STOCK CHECK
-      // --------------------------------------------------
-
-      if (
-        Number(variant.stock_quantity) <
-        quantity
-      ) {
-
-        return json(
-          {
-            ok: false,
-            error:
-              `Only ${variant.stock_quantity} unit(s) of ${product.name} are available.`
-          },
-          400
-        );
-
-      }
-
-
-      // --------------------------------------------------
-      // SERVER-SIDE PRICE
-      // --------------------------------------------------
-
-      const unitPrice =
-        Number(product.price);
-
-      const itemSubtotal =
-        unitPrice * quantity;
-
-
-      subtotal += itemSubtotal;
-
-
-      orderItems.push({
-
-        productId,
-
-        variantId,
-
-        productName:
-          product.name,
-
-        size:
-          variant.size || null,
-
-        color:
-          variant.color || null,
-
-        sku:
-          variant.sku || null,
-
-        unitPrice,
-
-        quantity,
-
-        subtotal:
-          itemSubtotal
-
-      });
-
-    }
-
-
-    // ----------------------------------------------------
-    // SHIPPING
-    // ----------------------------------------------------
-
-    const shippingCharge =
-      subtotal >= 2500
-        ? 0
-        : 60;
-
-
-    // ----------------------------------------------------
-    // DISCOUNT
-    // ----------------------------------------------------
-
-    const discount =
-      Number(body.discount || 0);
-
-
-    if (
-      !Number.isFinite(discount) ||
-      discount < 0 ||
-      discount > subtotal
-    ) {
-
-      return json(
-        {
-          ok: false,
-          error: "Invalid discount amount."
-        },
-        400
-      );
-
-    }
-
-
-    const total =
-      subtotal +
-      shippingCharge -
-      discount;
-
-
-    // ----------------------------------------------------
-    // PARTIAL PAYMENT
-    // ----------------------------------------------------
-
-    let partialPayment =
-      Number(
-        body.partialPayment || 0
-      );
-
-
-    if (
-      !Number.isFinite(partialPayment) ||
-      partialPayment < 0
-    ) {
-
-      return json(
-        {
-          ok: false,
-          error:
-            "Invalid partial payment amount."
-        },
-        400
-      );
-
-    }
-
-
-    if (partialPayment > total) {
-
-      partialPayment = total;
-
-    }
-
-
-    // ----------------------------------------------------
-    // PAYMENT METHOD
-    // ----------------------------------------------------
-
-    const paymentMethod =
-      body.paymentMethod ||
-      "online";
-
-
-    // ----------------------------------------------------
-    // CREATE UNIQUE ORDER NUMBER
-    // ----------------------------------------------------
-
-    const orderNumber =
-      `CANVO-${Date.now()}-${crypto
-        .randomUUID()
-        .slice(0, 8)
-        .toUpperCase()}`;
-
-
-    // ----------------------------------------------------
-    // CREATE ORDER
-    // ----------------------------------------------------
-
-    const orderResult =
-      await env.DB
-        .prepare(
-          `
-          INSERT INTO orders (
-            order_number,
-            customer_name,
-            phone,
-            district,
-            thana,
-            address,
-            note,
-            subtotal,
-            shipping_charge,
-            discount,
-            total,
-            partial_payment,
-            payment_method,
-            payment_status,
-            order_status
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `
-        )
-        .bind(
-
-          orderNumber,
-
-          customer.name,
-
-          customer.phone,
-
-          customer.district,
-
-          customer.thana,
-
-          customer.address,
-
-          customer.note || "",
-
-          subtotal,
-
-          shippingCharge,
-
-          discount,
-
-          total,
-
-          partialPayment,
-
-          paymentMethod,
-
-          "pending",
-
-          "pending"
-
-        )
-        .run();
-
-
-    const orderId =
-      orderResult.meta.last_row_id;
-
-
-    // ----------------------------------------------------
-    // INSERT ITEMS + DECREASE STOCK
-    // ----------------------------------------------------
-
-    const statements = [];
-
-
-    for (const item of orderItems) {
-
-      statements.push(
-
-        env.DB
-          .prepare(
-            `
-            INSERT INTO order_items (
-              order_id,
-              product_id,
-              variant_id,
-              product_name,
-              size,
-              color,
-              sku,
-              unit_price,
-              quantity,
-              subtotal
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `
-          )
-          .bind(
-
-            orderId,
-
-            item.productId,
-
-            item.variantId,
-
-            item.productName,
-
-            item.size,
-
-            item.color,
-
-            item.sku,
-
-            item.unitPrice,
-
-            item.quantity,
-
-            item.subtotal
-
-          )
-
-      );
-
-
-      statements.push(
-
-        env.DB
-          .prepare(
-            `
-            UPDATE product_variants
-            SET stock_quantity =
-              stock_quantity - ?
-            WHERE id = ?
-              AND stock_quantity >= ?
-            `
-          )
-          .bind(
-
-            item.quantity,
-
-            item.variantId,
-
-            item.quantity
-
-          )
-
-      );
-
-    }
-
-
-    // ----------------------------------------------------
-    // EXECUTE ITEM + STOCK QUERIES
-    // ----------------------------------------------------
-
-    await env.DB.batch(
-      statements
-    );
-
-
-    // ----------------------------------------------------
-    // SUCCESS
-    // ----------------------------------------------------
-
-    return json(
-      {
-        ok: true,
-
-        message:
-          "Order created successfully.",
-
-        order: {
-
-          id:
-            orderId,
-
-          orderNumber:
-            orderNumber,
-
-          subtotal:
-            subtotal,
-
-          shippingCharge:
-            shippingCharge,
-
-          discount:
-            discount,
-
-          total:
-            total,
-
-          partialPayment:
-            partialPayment,
-
-          paymentStatus:
-            "pending",
-
-          orderStatus:
-            "pending"
-
-        }
-
-      },
-      201
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Create order error:",
-      error
-    );
-
-
-    return json(
-      {
-        ok: false,
-
-        error:
-          "Unable to create order.",
-
-        details:
-          error.message
-
-      },
-      500
-    );
-
-  }
-
-}
 
     // ========================================================
-    // 3. FIRST ADMIN SETUP
+    // 3. CREATE CUSTOMER ORDER
+    // ========================================================
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/api/orders"
+    ) {
+
+      try {
+
+        const body =
+          await request.json();
+
+        const customer =
+          body.customer || {};
+
+        const items =
+          Array.isArray(body.items)
+            ? body.items
+            : [];
+
+        // ----------------------------------------------------
+        // BASIC VALIDATION
+        // ----------------------------------------------------
+
+        if (
+          !customer.name ||
+          !customer.phone ||
+          !customer.district ||
+          !customer.thana ||
+          !customer.address
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Please provide all required customer information."
+            },
+            400
+          );
+        }
+
+        if (!items.length) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Order must contain at least one item."
+            },
+            400
+          );
+        }
+
+        // ----------------------------------------------------
+        // CHECK PRODUCTS + VARIANTS + STOCK
+        // ----------------------------------------------------
+
+        const orderItems = [];
+
+        let subtotal = 0;
+
+        for (const item of items) {
+
+          const productId =
+            Number(item.productId);
+
+          const variantId =
+            Number(item.variantId);
+
+          const quantity =
+            Number(item.quantity);
+
+          if (
+            !Number.isInteger(productId) ||
+            !Number.isInteger(variantId) ||
+            !Number.isInteger(quantity) ||
+            quantity <= 0
+          ) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  "Invalid product, variant or quantity."
+              },
+              400
+            );
+          }
+
+          // --------------------------------------------------
+          // GET PRODUCT
+          // IMPORTANT:
+          // products table uses "status", not "active"
+          // --------------------------------------------------
+
+          const product =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  name,
+                  price,
+                  status
+                FROM products
+                WHERE id = ?
+                  AND status = 'active'
+                LIMIT 1
+              `)
+              .bind(productId)
+              .first();
+
+          if (!product) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  `Product ${productId} was not found or is inactive.`
+              },
+              404
+            );
+          }
+
+          // --------------------------------------------------
+          // GET VARIANT
+          // --------------------------------------------------
+
+          const variant =
+            await env.DB
+              .prepare(`
+                SELECT
+                  id,
+                  product_id,
+                  size,
+                  color,
+                  sku,
+                  stock_quantity
+                FROM product_variants
+                WHERE id = ?
+                  AND product_id = ?
+                LIMIT 1
+              `)
+              .bind(
+                variantId,
+                productId
+              )
+              .first();
+
+          if (!variant) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  `Selected variant for ${product.name} was not found.`
+              },
+              404
+            );
+          }
+
+          // --------------------------------------------------
+          // STOCK CHECK
+          // --------------------------------------------------
+
+          if (
+            Number(
+              variant.stock_quantity
+            ) < quantity
+          ) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  `Only ${variant.stock_quantity} unit(s) of ${product.name} are available.`
+              },
+              400
+            );
+          }
+
+          // --------------------------------------------------
+          // SERVER-SIDE PRICE
+          // --------------------------------------------------
+
+          const unitPrice =
+            Number(product.price);
+
+          const itemSubtotal =
+            unitPrice * quantity;
+
+          subtotal +=
+            itemSubtotal;
+
+          orderItems.push({
+
+            productId,
+
+            variantId,
+
+            productName:
+              product.name,
+
+            size:
+              variant.size || null,
+
+            color:
+              variant.color || null,
+
+            sku:
+              variant.sku || null,
+
+            unitPrice,
+
+            quantity,
+
+            subtotal:
+              itemSubtotal
+          });
+        }
+
+        // ----------------------------------------------------
+        // SHIPPING
+        // ----------------------------------------------------
+
+        const shippingCharge =
+          subtotal >= 2500
+            ? 0
+            : 60;
+
+        // ----------------------------------------------------
+        // DISCOUNT
+        // ----------------------------------------------------
+
+        const discount =
+          Number(
+            body.discount || 0
+          );
+
+        if (
+          !Number.isFinite(discount) ||
+          discount < 0 ||
+          discount > subtotal
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid discount amount."
+            },
+            400
+          );
+        }
+
+        // ----------------------------------------------------
+        // TOTAL
+        // ----------------------------------------------------
+
+        const total =
+          subtotal +
+          shippingCharge -
+          discount;
+
+        // ----------------------------------------------------
+        // PARTIAL PAYMENT
+        // ----------------------------------------------------
+
+        let partialPayment =
+          Number(
+            body.partialPayment || 0
+          );
+
+        if (
+          !Number.isFinite(
+            partialPayment
+          ) ||
+          partialPayment < 0
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid partial payment amount."
+            },
+            400
+          );
+        }
+
+        if (
+          partialPayment > total
+        ) {
+          partialPayment = total;
+        }
+
+        // ----------------------------------------------------
+        // PAYMENT METHOD
+        // ----------------------------------------------------
+
+        const paymentMethod =
+          body.paymentMethod ||
+          "online";
+
+        // ----------------------------------------------------
+        // CREATE UNIQUE ORDER NUMBER
+        // ----------------------------------------------------
+
+        const orderNumber =
+          `CANVO-${Date.now()}-${crypto
+            .randomUUID()
+            .slice(0, 8)
+            .toUpperCase()}`;
+
+        // ----------------------------------------------------
+        // CREATE ORDER
+        // ----------------------------------------------------
+
+        const orderResult =
+          await env.DB
+            .prepare(`
+              INSERT INTO orders (
+                order_number,
+                customer_name,
+                phone,
+                district,
+                thana,
+                address,
+                note,
+                subtotal,
+                shipping_charge,
+                discount,
+                total,
+                partial_payment,
+                payment_method,
+                payment_status,
+                order_status
+              )
+              VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?
+              )
+            `)
+            .bind(
+
+              orderNumber,
+
+              customer.name,
+
+              customer.phone,
+
+              customer.district,
+
+              customer.thana,
+
+              customer.address,
+
+              customer.note || "",
+
+              subtotal,
+
+              shippingCharge,
+
+              discount,
+
+              total,
+
+              partialPayment,
+
+              paymentMethod,
+
+              "pending",
+
+              "pending"
+
+            )
+            .run();
+
+        const orderId =
+          orderResult.meta.last_row_id;
+
+        // ----------------------------------------------------
+        // INSERT ITEMS + DECREASE STOCK
+        // ----------------------------------------------------
+
+        const statements = [];
+
+        for (
+          const item of orderItems
+        ) {
+
+          // INSERT ORDER ITEM
+
+          statements.push(
+
+            env.DB
+              .prepare(`
+                INSERT INTO order_items (
+                  order_id,
+                  product_id,
+                  variant_id,
+                  product_name,
+                  size,
+                  color,
+                  sku,
+                  unit_price,
+                  quantity,
+                  subtotal
+                )
+                VALUES (
+                  ?, ?, ?, ?, ?, ?,
+                  ?, ?, ?, ?
+                )
+              `)
+              .bind(
+
+                orderId,
+
+                item.productId,
+
+                item.variantId,
+
+                item.productName,
+
+                item.size,
+
+                item.color,
+
+                item.sku,
+
+                item.unitPrice,
+
+                item.quantity,
+
+                item.subtotal
+
+              )
+          );
+
+          // DECREASE STOCK
+
+          statements.push(
+
+            env.DB
+              .prepare(`
+                UPDATE product_variants
+                SET stock_quantity =
+                  stock_quantity - ?
+                WHERE id = ?
+                  AND stock_quantity >= ?
+              `)
+              .bind(
+
+                item.quantity,
+
+                item.variantId,
+
+                item.quantity
+
+              )
+          );
+        }
+
+        // ----------------------------------------------------
+        // EXECUTE ITEM + STOCK QUERIES
+        // ----------------------------------------------------
+
+        await env.DB.batch(
+          statements
+        );
+
+        // ----------------------------------------------------
+        // SUCCESS
+        // ----------------------------------------------------
+
+        return json(
+          {
+            ok: true,
+
+            message:
+              "Order created successfully.",
+
+            order: {
+
+              id:
+                orderId,
+
+              orderNumber:
+                orderNumber,
+
+              subtotal:
+                subtotal,
+
+              shippingCharge:
+                shippingCharge,
+
+              discount:
+                discount,
+
+              total:
+                total,
+
+              partialPayment:
+                partialPayment,
+
+              paymentStatus:
+                "pending",
+
+              orderStatus:
+                "pending"
+
+            }
+          },
+          201
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Create order error:",
+          error
+        );
+
+        return json(
+          {
+            ok: false,
+
+            error:
+              "Unable to create order.",
+
+            details:
+              error.message
+          },
+          500
+        );
+      }
+    }
+
+    // ========================================================
+    // 4. FIRST ADMIN SETUP
     // ========================================================
 
     if (
@@ -1123,12 +961,10 @@ if (
             )
             .first();
 
-
         const existingAdmins =
           Number(
             adminCount?.count || 0
           );
-
 
         if (
           existingAdmins > 0
@@ -1142,15 +978,12 @@ if (
             },
             403
           );
-
         }
-
 
         const setupKey =
           request.headers.get(
             "X-Admin-Setup-Key"
           );
-
 
         if (
           !setupKey ||
@@ -1166,12 +999,9 @@ if (
             },
             401
           );
-
         }
 
-
         let body;
-
 
         try {
 
@@ -1188,23 +1018,18 @@ if (
             },
             400
           );
-
         }
-
 
         const name =
           body?.name?.trim();
-
 
         const email =
           body?.email
             ?.trim()
             .toLowerCase();
 
-
         const password =
           body?.password;
-
 
         if (
           !name ||
@@ -1220,9 +1045,7 @@ if (
             },
             400
           );
-
         }
-
 
         if (
           password.length < 10
@@ -1236,29 +1059,26 @@ if (
             },
             400
           );
-
         }
-
 
         const passwordHash =
           await hashPassword(
             password
           );
 
-
         const result =
           await env.DB
             .prepare(`
-              INSERT INTO admins
-              (
+              INSERT INTO admins (
                 name,
                 email,
                 password_hash,
                 role,
                 status
               )
-              VALUES
-              (?, ?, ?, 'admin', 'active')
+              VALUES (
+                ?, ?, ?, 'admin', 'active'
+              )
             `)
             .bind(
               name,
@@ -1266,7 +1086,6 @@ if (
               passwordHash
             )
             .run();
-
 
         return json({
           ok: true,
@@ -1286,14 +1105,11 @@ if (
           },
           500
         );
-
       }
-
     }
 
-
     // ========================================================
-    // 4. ADMIN LOGIN
+    // 5. ADMIN LOGIN
     // ========================================================
 
     if (
@@ -1307,16 +1123,13 @@ if (
         const body =
           await request.json();
 
-
         const email =
           body?.email
             ?.trim()
             .toLowerCase();
 
-
         const password =
           body?.password;
-
 
         if (
           !email ||
@@ -1331,9 +1144,7 @@ if (
             },
             400
           );
-
         }
-
 
         const admin =
           await env.DB
@@ -1352,7 +1163,6 @@ if (
             .bind(email)
             .first();
 
-
         if (!admin) {
 
           return json(
@@ -1363,9 +1173,7 @@ if (
             },
             401
           );
-
         }
-
 
         if (
           admin.status !==
@@ -1380,16 +1188,13 @@ if (
             },
             403
           );
-
         }
-
 
         const passwordCorrect =
           await verifyPassword(
             password,
             admin.password_hash
           );
-
 
         if (!passwordCorrect) {
 
@@ -1401,36 +1206,29 @@ if (
             },
             401
           );
-
         }
 
-
-        // Create session
         const sessionToken =
           createSessionToken();
-
 
         const sessionHash =
           await hashSessionToken(
             sessionToken
           );
 
-
         const expiresAt =
           new Date(
             Date.now() +
             SESSION_DAYS *
-              24 *
-              60 *
-              60 *
-              1000
+            24 *
+            60 *
+            60 *
+            1000
           ).toISOString();
-
 
         await env.DB
           .prepare(`
-            INSERT INTO admin_sessions
-            (
+            INSERT INTO admin_sessions (
               admin_id,
               session_token_hash,
               expires_at
@@ -1444,7 +1242,6 @@ if (
           )
           .run();
 
-
         const cookie =
           `${SESSION_COOKIE}=${sessionToken}; ` +
           `HttpOnly; ` +
@@ -1452,7 +1249,6 @@ if (
           `SameSite=Lax; ` +
           `Path=/; ` +
           `Max-Age=${SESSION_DAYS * 24 * 60 * 60}`;
-
 
         return json(
           {
@@ -1483,14 +1279,11 @@ if (
           },
           500
         );
-
       }
-
     }
 
-
     // ========================================================
-    // 5. ADMIN SESSION CHECK
+    // 6. ADMIN SESSION CHECK
     // ========================================================
 
     if (
@@ -1507,7 +1300,6 @@ if (
             env
           );
 
-
         if (!admin) {
 
           return json(
@@ -1516,9 +1308,7 @@ if (
             },
             401
           );
-
         }
-
 
         return json({
           authenticated: true,
@@ -1548,14 +1338,11 @@ if (
           },
           500
         );
-
       }
-
     }
 
-
     // ========================================================
-    // 6. ADMIN LOGOUT
+    // 7. ADMIN LOGOUT
     // ========================================================
 
     if (
@@ -1572,14 +1359,12 @@ if (
             SESSION_COOKIE
           );
 
-
         if (sessionToken) {
 
           const sessionHash =
             await hashSessionToken(
               sessionToken
             );
-
 
           await env.DB
             .prepare(`
@@ -1588,9 +1373,7 @@ if (
             `)
             .bind(sessionHash)
             .run();
-
         }
-
 
         const clearCookie =
           `${SESSION_COOKIE}=; ` +
@@ -1599,7 +1382,6 @@ if (
           `SameSite=Lax; ` +
           `Path=/; ` +
           `Max-Age=0`;
-
 
         return json(
           {
@@ -1624,14 +1406,11 @@ if (
           },
           500
         );
-
       }
-
     }
 
-
     // ========================================================
-    // 7. PUBLIC ACTIVE PRODUCTS
+    // 8. PUBLIC ACTIVE PRODUCTS
     // ========================================================
 
     if (
@@ -1664,7 +1443,6 @@ if (
             `)
             .all();
 
-
         return json({
           ok: true,
           products:
@@ -1681,115 +1459,113 @@ if (
           },
           500
         );
-
       }
-
     }
-// ========================================================
-// PUBLIC — GET ACTIVE PRODUCT VARIANTS
-// ========================================================
-
-if (
-  url.pathname.startsWith("/api/products/") &&
-  url.pathname.endsWith("/variants") &&
-  request.method === "GET"
-) {
-
-  try {
-
-    const parts =
-      url.pathname.split("/");
-
-    const productId =
-      Number(parts[3]);
-
-
-    if (
-      !Number.isInteger(productId) ||
-      productId <= 0
-    ) {
-
-      return json(
-        {
-          ok: false,
-          error: "Invalid product ID."
-        },
-        400
-      );
-
-    }
-
-
-    // Make sure the product is active
-    const product =
-      await env.DB
-        .prepare(`
-          SELECT id
-          FROM products
-          WHERE id = ?
-            AND status = 'active'
-          LIMIT 1
-        `)
-        .bind(productId)
-        .first();
-
-
-    if (!product) {
-
-      return json(
-        {
-          ok: false,
-          error: "Product not found."
-        },
-        404
-      );
-
-    }
-
-
-    const {
-      results
-    } =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            product_id,
-            size,
-            color,
-            sku,
-            stock_quantity
-          FROM product_variants
-          WHERE product_id = ?
-            AND stock_quantity > 0
-          ORDER BY id ASC
-        `)
-        .bind(productId)
-        .all();
-
-
-    return json({
-      ok: true,
-      variants: results
-    });
-
-
-  } catch (error) {
-
-    return json(
-      {
-        ok: false,
-        error: error.message
-      },
-      500
-    );
-
-  }
-
-}
 
     // ========================================================
-    // 8. ADMIN — GET ALL PRODUCTS
+    // 9. PUBLIC PRODUCT VARIANTS
+    // ========================================================
+
+    if (
+      url.pathname.startsWith(
+        "/api/products/"
+      ) &&
+      url.pathname.endsWith(
+        "/variants"
+      ) &&
+      request.method === "GET"
+    ) {
+
+      try {
+
+        const parts =
+          url.pathname.split("/");
+
+        const productId =
+          Number(parts[3]);
+
+        if (
+          !Number.isInteger(
+            productId
+          ) ||
+          productId <= 0
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product ID."
+            },
+            400
+          );
+        }
+
+        const product =
+          await env.DB
+            .prepare(`
+              SELECT id
+              FROM products
+              WHERE id = ?
+                AND status = 'active'
+              LIMIT 1
+            `)
+            .bind(productId)
+            .first();
+
+        if (!product) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Product not found."
+            },
+            404
+          );
+        }
+
+        const {
+          results
+        } =
+          await env.DB
+            .prepare(`
+              SELECT
+                id,
+                product_id,
+                size,
+                color,
+                sku,
+                stock_quantity
+              FROM product_variants
+              WHERE product_id = ?
+                AND stock_quantity > 0
+              ORDER BY id ASC
+            `)
+            .bind(productId)
+            .all();
+
+        return json({
+          ok: true,
+          variants:
+            results
+        });
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
+    }
+
+    // ========================================================
+    // 10. ADMIN — GET ALL PRODUCTS
     // ========================================================
 
     if (
@@ -1804,7 +1580,6 @@ if (
           env
         );
 
-
       if (!admin) {
 
         return json(
@@ -1815,9 +1590,7 @@ if (
           },
           401
         );
-
       }
-
 
       try {
 
@@ -1843,7 +1616,6 @@ if (
             `)
             .all();
 
-
         return json({
           ok: true,
           products:
@@ -1860,14 +1632,11 @@ if (
           },
           500
         );
-
       }
-
     }
 
-
     // ========================================================
-    // 9. ADMIN — CREATE PRODUCT
+    // 11. ADMIN — CREATE PRODUCT
     // ========================================================
 
     if (
@@ -1882,7 +1651,6 @@ if (
           env
         );
 
-
       if (!admin) {
 
         return json(
@@ -1893,63 +1661,44 @@ if (
           },
           401
         );
-
       }
-
 
       try {
 
         const body =
           await request.json();
 
-
         const name =
           body?.name?.trim();
 
-
         const category =
           body?.category?.trim();
-
 
         const description =
           body?.description?.trim() ||
           "";
 
-
         const price =
           Number(body?.price);
-
 
         const oldPriceValue =
           body?.old_price;
 
-
         const oldPrice =
-          oldPriceValue ===
-            null ||
-          oldPriceValue ===
-            undefined ||
-          oldPriceValue ===
-            ""
+          oldPriceValue === null ||
+          oldPriceValue === undefined ||
+          oldPriceValue === ""
             ? null
             : Number(oldPriceValue);
-
 
         const imageUrl =
           body?.image_url?.trim() ||
           null;
 
-
         const status =
-          body?.status ===
-          "inactive"
+          body?.status === "inactive"
             ? "inactive"
             : "active";
-
-
-        // --------------------------------------------
-        // Validation
-        // --------------------------------------------
 
         if (
           !name ||
@@ -1964,9 +1713,7 @@ if (
             },
             400
           );
-
         }
-
 
         if (
           !Number.isFinite(price) ||
@@ -1981,14 +1728,14 @@ if (
             },
             400
           );
-
         }
-
 
         if (
           oldPrice !== null &&
           (
-            !Number.isFinite(oldPrice) ||
+            !Number.isFinite(
+              oldPrice
+            ) ||
             oldPrice < 0
           )
         ) {
@@ -2001,24 +1748,15 @@ if (
             },
             400
           );
-
         }
-
-
-        // --------------------------------------------
-        // Generate slug
-        // --------------------------------------------
 
         const baseSlug =
           createSlug(name);
 
-
         let slug =
           baseSlug;
 
-
         let counter = 2;
-
 
         while (true) {
 
@@ -2033,30 +1771,20 @@ if (
               .bind(slug)
               .first();
 
-
           if (!existing) {
             break;
           }
 
-
           slug =
             `${baseSlug}-${counter}`;
 
-
           counter++;
-
         }
-
-
-        // --------------------------------------------
-        // Insert product
-        // --------------------------------------------
 
         const result =
           await env.DB
             .prepare(`
-              INSERT INTO products
-              (
+              INSERT INTO products (
                 name,
                 slug,
                 category,
@@ -2066,8 +1794,9 @@ if (
                 image_url,
                 status
               )
-              VALUES
-              (?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?
+              )
             `)
             .bind(
               name,
@@ -2080,7 +1809,6 @@ if (
               status
             )
             .run();
-
 
         return json(
           {
@@ -2104,852 +1832,991 @@ if (
           },
           500
         );
-
       }
-
     }
-
 
     // ========================================================
-    // 10. SERVE EXISTING CANVO WEBSITE
+    // 12. ADMIN — EDIT PRODUCT
     // ========================================================
 
-// ============================================================
-// ADMIN EDIT PRODUCT
-// ============================================================
-
-if (
-  url.pathname.startsWith("/api/admin/products/") &&
-  request.method === "PUT"
-) {
-  const admin = await getAuthenticatedAdmin(request, env);
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized. Please login again."
-    }, 401);
-  }
-
-  try {
-    const productId = url.pathname.split("/").pop();
-
-    if (!productId || !/^\d+$/.test(productId)) {
-      return json({
-        ok: false,
-        error: "Invalid product ID."
-      }, 400);
-    }
-
-    const body = await request.json();
-
-    const name = body?.name?.trim();
-    const category = body?.category?.trim();
-    const description = body?.description?.trim() || "";
-    const price = Number(body?.price);
-
-    const oldPriceValue = body?.old_price;
-
-    const oldPrice =
-      oldPriceValue === null ||
-      oldPriceValue === undefined ||
-      oldPriceValue === ""
-        ? null
-        : Number(oldPriceValue);
-
-    const imageUrl =
-      body?.image_url?.trim() || null;
-
-    const status =
-      body?.status === "inactive"
-        ? "inactive"
-        : "active";
-
-    if (!name || !category) {
-      return json({
-        ok: false,
-        error: "Product name and category are required."
-      }, 400);
-    }
-
-    if (!Number.isFinite(price) || price < 0) {
-      return json({
-        ok: false,
-        error: "Invalid product price."
-      }, 400);
-    }
-
     if (
-      oldPrice !== null &&
-      (!Number.isFinite(oldPrice) || oldPrice < 0)
-    ) {
-      return json({
-        ok: false,
-        error: "Invalid old price."
-      }, 400);
-    }
-
-    const existing = await env.DB
-      .prepare(`
-        SELECT id
-        FROM products
-        WHERE id = ?
-        LIMIT 1
-      `)
-      .bind(productId)
-      .first();
-
-    if (!existing) {
-      return json({
-        ok: false,
-        error: "Product not found."
-      }, 404);
-    }
-
-    await env.DB
-      .prepare(`
-        UPDATE products
-        SET
-          name = ?,
-          category = ?,
-          description = ?,
-          price = ?,
-          old_price = ?,
-          image_url = ?,
-          status = ?,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `)
-      .bind(
-        name,
-        category,
-        description,
-        price,
-        oldPrice,
-        imageUrl,
-        status,
-        productId
-      )
-      .run();
-
-    return json({
-      ok: true,
-      message: "Product updated successfully."
-    });
-
-  } catch (error) {
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
-  }
-}
-
-
-// ============================================================
-// ADMIN DELETE PRODUCT
-// ============================================================
-
-if (
-  url.pathname.startsWith("/api/admin/products/") &&
-  request.method === "DELETE"
-) {
-  const admin = await getAuthenticatedAdmin(request, env);
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized. Please login again."
-    }, 401);
-  }
-
-  try {
-    const productId = url.pathname.split("/").pop();
-
-    if (!productId || !/^\d+$/.test(productId)) {
-      return json({
-        ok: false,
-        error: "Invalid product ID."
-      }, 400);
-    }
-
-    const existing = await env.DB
-      .prepare(`
-        SELECT id, name
-        FROM products
-        WHERE id = ?
-        LIMIT 1
-      `)
-      .bind(productId)
-      .first();
-
-    if (!existing) {
-      return json({
-        ok: false,
-        error: "Product not found."
-      }, 404);
-    }
-
-    // Soft delete:
-    // Product remains in database for existing order history,
-    // but becomes inactive and disappears from the storefront.
-
-    await env.DB
-      .prepare(`
-        UPDATE products
-        SET
-          status = 'inactive',
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `)
-      .bind(productId)
-      .run();
-
-    return json({
-      ok: true,
-      message: "Product deleted successfully."
-    });
-
-  } catch (error) {
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
-  }
-}
-    // ============================================================
-// PRODUCT VARIANT MANAGEMENT
-// ============================================================
-
-
-// ------------------------------------------------------------
-// GET VARIANTS FOR A PRODUCT
-// ------------------------------------------------------------
-
-if (
-  url.pathname.startsWith("/api/admin/products/") &&
-  url.pathname.endsWith("/variants") &&
-  request.method === "GET"
-) {
-  const admin = await getAuthenticatedAdmin(
-    request,
-    env
-  );
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized."
-    }, 401);
-  }
-
-  try {
-
-    const parts =
-      url.pathname.split("/");
-
-    const productId =
-      parts[4];
-
-    if (
-      !productId ||
-      !/^\d+$/.test(productId)
-    ) {
-      return json({
-        ok: false,
-        error: "Invalid product ID."
-      }, 400);
-    }
-
-
-    const product =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            name
-          FROM products
-          WHERE id = ?
-          LIMIT 1
-        `)
-        .bind(productId)
-        .first();
-
-
-    if (!product) {
-      return json({
-        ok: false,
-        error: "Product not found."
-      }, 404);
-    }
-
-
-    const { results } =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            product_id,
-            size,
-            color,
-            sku,
-            stock_quantity,
-            created_at,
-            updated_at
-          FROM product_variants
-          WHERE product_id = ?
-          ORDER BY id ASC
-        `)
-        .bind(productId)
-        .all();
-
-
-    return json({
-      ok: true,
-      product,
-      variants: results
-    });
-
-
-  } catch (error) {
-
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
-
-  }
-}
-
-
-
-// ------------------------------------------------------------
-// ADD PRODUCT VARIANT
-// ------------------------------------------------------------
-
-if (
-  url.pathname.startsWith("/api/admin/products/") &&
-  url.pathname.endsWith("/variants") &&
-  request.method === "POST"
-) {
-  const admin = await getAuthenticatedAdmin(
-    request,
-    env
-  );
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized."
-    }, 401);
-  }
-
-
-  try {
-
-    const parts =
-      url.pathname.split("/");
-
-    const productId =
-      parts[4];
-
-
-    if (
-      !productId ||
-      !/^\d+$/.test(productId)
-    ) {
-      return json({
-        ok: false,
-        error: "Invalid product ID."
-      }, 400);
-    }
-
-
-    // ------------------------------------------
-    // CHECK PRODUCT
-    // ------------------------------------------
-
-    const product =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            name
-          FROM products
-          WHERE id = ?
-          LIMIT 1
-        `)
-        .bind(productId)
-        .first();
-
-
-    if (!product) {
-      return json({
-        ok: false,
-        error: "Product not found."
-      }, 404);
-    }
-
-
-    // ------------------------------------------
-    // READ REQUEST
-    // ------------------------------------------
-
-    let body;
-
-    try {
-
-      body =
-        await request.json();
-
-    } catch {
-
-      return json({
-        ok: false,
-        error: "Invalid JSON request body."
-      }, 400);
-
-    }
-
-
-    const size =
-      body?.size?.trim() || null;
-
-    const color =
-      body?.color?.trim() || null;
-
-    const sku =
-      body?.sku?.trim() || null;
-
-
-    const stockQuantity =
-      Number(
-        body?.stock_quantity ?? 0
-      );
-
-
-    // ------------------------------------------
-    // VALIDATION
-    // ------------------------------------------
-
-    if (
-      !Number.isFinite(stockQuantity) ||
-      !Number.isInteger(stockQuantity) ||
-      stockQuantity < 0
+      url.pathname.startsWith(
+        "/api/admin/products/"
+      ) &&
+      request.method === "PUT"
     ) {
 
-      return json({
-        ok: false,
-        error:
-          "Stock quantity must be a non-negative integer."
-      }, 400);
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
 
-    }
+      if (!admin) {
 
-
-    if (!size && !color) {
-
-      return json({
-        ok: false,
-        error:
-          "At least size or color is required."
-      }, 400);
-
-    }
-
-
-    // ------------------------------------------
-    // CHECK SKU
-    // ------------------------------------------
-
-    if (sku) {
-
-      const existingSku =
-        await env.DB
-          .prepare(`
-            SELECT
-              id
-            FROM product_variants
-            WHERE sku = ?
-            LIMIT 1
-          `)
-          .bind(sku)
-          .first();
-
-
-      if (existingSku) {
-
-        return json({
-          ok: false,
-          error:
-            "This SKU already exists."
-        }, 409);
-
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized. Please login again."
+          },
+          401
+        );
       }
 
-    }
+      try {
 
+        const productId =
+          url.pathname
+            .split("/")
+            .pop();
 
-    // ------------------------------------------
-    // INSERT VARIANT
-    // ------------------------------------------
+        if (
+          !productId ||
+          !/^\d+$/.test(productId)
+        ) {
 
-    const result =
-      await env.DB
-        .prepare(`
-          INSERT INTO product_variants
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product ID."
+            },
+            400
+          );
+        }
+
+        const body =
+          await request.json();
+
+        const name =
+          body?.name?.trim();
+
+        const category =
+          body?.category?.trim();
+
+        const description =
+          body?.description?.trim() ||
+          "";
+
+        const price =
+          Number(body?.price);
+
+        const oldPriceValue =
+          body?.old_price;
+
+        const oldPrice =
+          oldPriceValue === null ||
+          oldPriceValue === undefined ||
+          oldPriceValue === ""
+            ? null
+            : Number(oldPriceValue);
+
+        const imageUrl =
+          body?.image_url?.trim() ||
+          null;
+
+        const status =
+          body?.status === "inactive"
+            ? "inactive"
+            : "active";
+
+        if (
+          !name ||
+          !category
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Product name and category are required."
+            },
+            400
+          );
+        }
+
+        if (
+          !Number.isFinite(price) ||
+          price < 0
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product price."
+            },
+            400
+          );
+        }
+
+        if (
+          oldPrice !== null &&
           (
-            product_id,
-            size,
-            color,
-            sku,
-            stock_quantity
+            !Number.isFinite(
+              oldPrice
+            ) ||
+            oldPrice < 0
           )
-          VALUES (?, ?, ?, ?, ?)
-        `)
-        .bind(
-          productId,
-          size,
-          color,
-          sku,
-          stockQuantity
-        )
-        .run();
+        ) {
 
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid old price."
+            },
+            400
+          );
+        }
 
-    return json({
-      ok: true,
-      message:
-        "Product variant created successfully.",
-      variant_id:
-        result.meta.last_row_id
-    }, 201);
+        const existing =
+          await env.DB
+            .prepare(`
+              SELECT id
+              FROM products
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(productId)
+            .first();
 
+        if (!existing) {
 
-  } catch (error) {
+          return json(
+            {
+              ok: false,
+              error:
+                "Product not found."
+            },
+            404
+          );
+        }
 
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
-
-  }
-}
-
-
-
-// ============================================================
-// UPDATE PRODUCT VARIANT
-// ============================================================
-
-if (
-  url.pathname.startsWith("/api/admin/variants/") &&
-  request.method === "PUT"
-) {
-  const admin = await getAuthenticatedAdmin(
-    request,
-    env
-  );
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized."
-    }, 401);
-  }
-
-
-  try {
-
-    const variantId =
-      url.pathname.split("/").pop();
-
-
-    if (
-      !variantId ||
-      !/^\d+$/.test(variantId)
-    ) {
-      return json({
-        ok: false,
-        error: "Invalid variant ID."
-      }, 400);
-    }
-
-
-    // ------------------------------------------
-    // CHECK VARIANT
-    // ------------------------------------------
-
-    const existing =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            product_id
-          FROM product_variants
-          WHERE id = ?
-          LIMIT 1
-        `)
-        .bind(variantId)
-        .first();
-
-
-    if (!existing) {
-      return json({
-        ok: false,
-        error: "Variant not found."
-      }, 404);
-    }
-
-
-    // ------------------------------------------
-    // READ REQUEST
-    // ------------------------------------------
-
-    let body;
-
-    try {
-
-      body =
-        await request.json();
-
-    } catch {
-
-      return json({
-        ok: false,
-        error: "Invalid JSON request body."
-      }, 400);
-
-    }
-
-
-    const size =
-      body?.size?.trim() || null;
-
-    const color =
-      body?.color?.trim() || null;
-
-    const sku =
-      body?.sku?.trim() || null;
-
-
-    const stockQuantity =
-      Number(
-        body?.stock_quantity ?? 0
-      );
-
-
-    // ------------------------------------------
-    // VALIDATION
-    // ------------------------------------------
-
-    if (
-      !Number.isFinite(stockQuantity) ||
-      !Number.isInteger(stockQuantity) ||
-      stockQuantity < 0
-    ) {
-
-      return json({
-        ok: false,
-        error:
-          "Stock quantity must be a non-negative integer."
-      }, 400);
-
-    }
-
-
-    if (!size && !color) {
-
-      return json({
-        ok: false,
-        error:
-          "At least size or color is required."
-      }, 400);
-
-    }
-
-
-    // ------------------------------------------
-    // CHECK SKU
-    // ------------------------------------------
-
-    if (sku) {
-
-      const existingSku =
         await env.DB
           .prepare(`
-            SELECT
-              id
-            FROM product_variants
-            WHERE
-              sku = ?
-              AND id != ?
-            LIMIT 1
+            UPDATE products
+            SET
+              name = ?,
+              category = ?,
+              description = ?,
+              price = ?,
+              old_price = ?,
+              image_url = ?,
+              status = ?,
+              updated_at =
+                CURRENT_TIMESTAMP
+            WHERE id = ?
           `)
           .bind(
-            sku,
-            variantId
+            name,
+            category,
+            description,
+            price,
+            oldPrice,
+            imageUrl,
+            status,
+            productId
           )
-          .first();
-
-
-      if (existingSku) {
+          .run();
 
         return json({
-          ok: false,
-          error:
-            "This SKU already exists."
-        }, 409);
+          ok: true,
+          message:
+            "Product updated successfully."
+        });
 
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
       }
-
     }
 
-
-    // ------------------------------------------
-    // UPDATE
-    // ------------------------------------------
-
-    await env.DB
-      .prepare(`
-        UPDATE product_variants
-        SET
-          size = ?,
-          color = ?,
-          sku = ?,
-          stock_quantity = ?,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `)
-      .bind(
-        size,
-        color,
-        sku,
-        stockQuantity,
-        variantId
-      )
-      .run();
-
-
-    return json({
-      ok: true,
-      message:
-        "Product variant updated successfully."
-    });
-
-
-  } catch (error) {
-
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
-
-  }
-}
-
-
-
-// ============================================================
-// DELETE PRODUCT VARIANT
-// ============================================================
-
-if (
-  url.pathname.startsWith("/api/admin/variants/") &&
-  request.method === "DELETE"
-) {
-  const admin = await getAuthenticatedAdmin(
-    request,
-    env
-  );
-
-  if (!admin) {
-    return json({
-      ok: false,
-      error: "Unauthorized."
-    }, 401);
-  }
-
-
-  try {
-
-    const variantId =
-      url.pathname.split("/").pop();
-
+    // ========================================================
+    // 13. ADMIN — DELETE PRODUCT
+    // ========================================================
 
     if (
-      !variantId ||
-      !/^\d+$/.test(variantId)
+      url.pathname.startsWith(
+        "/api/admin/products/"
+      ) &&
+      request.method === "DELETE"
     ) {
-      return json({
-        ok: false,
-        error: "Invalid variant ID."
-      }, 400);
+
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
+
+      if (!admin) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized."
+          },
+          401
+        );
+      }
+
+      try {
+
+        const productId =
+          url.pathname
+            .split("/")
+            .pop();
+
+        if (
+          !productId ||
+          !/^\d+$/.test(productId)
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product ID."
+            },
+            400
+          );
+        }
+
+        const existing =
+          await env.DB
+            .prepare(`
+              SELECT id, name
+              FROM products
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(productId)
+            .first();
+
+        if (!existing) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Product not found."
+            },
+            404
+          );
+        }
+
+        await env.DB
+          .prepare(`
+            UPDATE products
+            SET
+              status = 'inactive',
+              updated_at =
+                CURRENT_TIMESTAMP
+            WHERE id = ?
+          `)
+          .bind(productId)
+          .run();
+
+        return json({
+          ok: true,
+          message:
+            "Product deleted successfully."
+        });
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
     }
 
+    // ========================================================
+    // 14. ADMIN — GET VARIANTS
+    // ========================================================
 
-    const existing =
-      await env.DB
-        .prepare(`
-          SELECT
-            id
-          FROM product_variants
-          WHERE id = ?
-          LIMIT 1
-        `)
-        .bind(variantId)
-        .first();
+    if (
+      url.pathname.startsWith(
+        "/api/admin/products/"
+      ) &&
+      url.pathname.endsWith(
+        "/variants"
+      ) &&
+      request.method === "GET"
+    ) {
 
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
 
-    if (!existing) {
-      return json({
-        ok: false,
-        error: "Variant not found."
-      }, 404);
+      if (!admin) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized."
+          },
+          401
+        );
+      }
+
+      try {
+
+        const parts =
+          url.pathname.split("/");
+
+        const productId =
+          parts[4];
+
+        if (
+          !productId ||
+          !/^\d+$/.test(productId)
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product ID."
+            },
+            400
+          );
+        }
+
+        const product =
+          await env.DB
+            .prepare(`
+              SELECT id, name
+              FROM products
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(productId)
+            .first();
+
+        if (!product) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Product not found."
+            },
+            404
+          );
+        }
+
+        const {
+          results
+        } =
+          await env.DB
+            .prepare(`
+              SELECT
+                id,
+                product_id,
+                size,
+                color,
+                sku,
+                stock_quantity,
+                created_at,
+                updated_at
+              FROM product_variants
+              WHERE product_id = ?
+              ORDER BY id ASC
+            `)
+            .bind(productId)
+            .all();
+
+        return json({
+          ok: true,
+          product,
+          variants:
+            results
+        });
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
     }
 
+    // ========================================================
+    // 15. ADMIN — ADD VARIANT
+    // ========================================================
 
-    await env.DB
-      .prepare(`
-        DELETE FROM product_variants
-        WHERE id = ?
-      `)
-      .bind(variantId)
-      .run();
+    if (
+      url.pathname.startsWith(
+        "/api/admin/products/"
+      ) &&
+      url.pathname.endsWith(
+        "/variants"
+      ) &&
+      request.method === "POST"
+    ) {
 
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
 
-    return json({
-      ok: true,
-      message:
-        "Product variant deleted successfully."
-    });
+      if (!admin) {
 
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized."
+          },
+          401
+        );
+      }
 
-  } catch (error) {
+      try {
 
-    return json({
-      ok: false,
-      error: error.message
-    }, 500);
+        const parts =
+          url.pathname.split("/");
 
-  }
-}
+        const productId =
+          parts[4];
+
+        if (
+          !productId ||
+          !/^\d+$/.test(productId)
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid product ID."
+            },
+            400
+          );
+        }
+
+        const product =
+          await env.DB
+            .prepare(`
+              SELECT id, name
+              FROM products
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(productId)
+            .first();
+
+        if (!product) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Product not found."
+            },
+            404
+          );
+        }
+
+        let body;
+
+        try {
+
+          body =
+            await request.json();
+
+        } catch {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid JSON request body."
+            },
+            400
+          );
+        }
+
+        const size =
+          body?.size?.trim() ||
+          null;
+
+        const color =
+          body?.color?.trim() ||
+          null;
+
+        const sku =
+          body?.sku?.trim() ||
+          null;
+
+        const stockQuantity =
+          Number(
+            body?.stock_quantity ?? 0
+          );
+
+        if (
+          !Number.isFinite(
+            stockQuantity
+          ) ||
+          !Number.isInteger(
+            stockQuantity
+          ) ||
+          stockQuantity < 0
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Stock quantity must be a non-negative integer."
+            },
+            400
+          );
+        }
+
+        if (
+          !size &&
+          !color
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "At least size or color is required."
+            },
+            400
+          );
+        }
+
+        if (sku) {
+
+          const existingSku =
+            await env.DB
+              .prepare(`
+                SELECT id
+                FROM product_variants
+                WHERE sku = ?
+                LIMIT 1
+              `)
+              .bind(sku)
+              .first();
+
+          if (existingSku) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  "This SKU already exists."
+              },
+              409
+            );
+          }
+        }
+
+        const result =
+          await env.DB
+            .prepare(`
+              INSERT INTO product_variants (
+                product_id,
+                size,
+                color,
+                sku,
+                stock_quantity
+              )
+              VALUES (?, ?, ?, ?, ?)
+            `)
+            .bind(
+              productId,
+              size,
+              color,
+              sku,
+              stockQuantity
+            )
+            .run();
+
+        return json(
+          {
+            ok: true,
+            message:
+              "Product variant created successfully.",
+            variant_id:
+              result.meta.last_row_id
+          },
+          201
+        );
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
+    }
+
+    // ========================================================
+    // 16. ADMIN — UPDATE VARIANT
+    // ========================================================
+
+    if (
+      url.pathname.startsWith(
+        "/api/admin/variants/"
+      ) &&
+      request.method === "PUT"
+    ) {
+
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
+
+      if (!admin) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized."
+          },
+          401
+        );
+      }
+
+      try {
+
+        const variantId =
+          url.pathname
+            .split("/")
+            .pop();
+
+        if (
+          !variantId ||
+          !/^\d+$/.test(variantId)
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid variant ID."
+            },
+            400
+          );
+        }
+
+        const existing =
+          await env.DB
+            .prepare(`
+              SELECT
+                id,
+                product_id
+              FROM product_variants
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(variantId)
+            .first();
+
+        if (!existing) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Variant not found."
+            },
+            404
+          );
+        }
+
+        let body;
+
+        try {
+
+          body =
+            await request.json();
+
+        } catch {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid JSON request body."
+            },
+            400
+          );
+        }
+
+        const size =
+          body?.size?.trim() ||
+          null;
+
+        const color =
+          body?.color?.trim() ||
+          null;
+
+        const sku =
+          body?.sku?.trim() ||
+          null;
+
+        const stockQuantity =
+          Number(
+            body?.stock_quantity ?? 0
+          );
+
+        if (
+          !Number.isFinite(
+            stockQuantity
+          ) ||
+          !Number.isInteger(
+            stockQuantity
+          ) ||
+          stockQuantity < 0
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Stock quantity must be a non-negative integer."
+            },
+            400
+          );
+        }
+
+        if (
+          !size &&
+          !color
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "At least size or color is required."
+            },
+            400
+          );
+        }
+
+        if (sku) {
+
+          const existingSku =
+            await env.DB
+              .prepare(`
+                SELECT id
+                FROM product_variants
+                WHERE sku = ?
+                  AND id != ?
+                LIMIT 1
+              `)
+              .bind(
+                sku,
+                variantId
+              )
+              .first();
+
+          if (existingSku) {
+
+            return json(
+              {
+                ok: false,
+                error:
+                  "This SKU already exists."
+              },
+              409
+            );
+          }
+        }
+
+        await env.DB
+          .prepare(`
+            UPDATE product_variants
+            SET
+              size = ?,
+              color = ?,
+              sku = ?,
+              stock_quantity = ?,
+              updated_at =
+                CURRENT_TIMESTAMP
+            WHERE id = ?
+          `)
+          .bind(
+            size,
+            color,
+            sku,
+            stockQuantity,
+            variantId
+          )
+          .run();
+
+        return json({
+          ok: true,
+          message:
+            "Product variant updated successfully."
+        });
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
+    }
+
+    // ========================================================
+    // 17. ADMIN — DELETE VARIANT
+    // ========================================================
+
+    if (
+      url.pathname.startsWith(
+        "/api/admin/variants/"
+      ) &&
+      request.method === "DELETE"
+    ) {
+
+      const admin =
+        await getAuthenticatedAdmin(
+          request,
+          env
+        );
+
+      if (!admin) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              "Unauthorized."
+          },
+          401
+        );
+      }
+
+      try {
+
+        const variantId =
+          url.pathname
+            .split("/")
+            .pop();
+
+        if (
+          !variantId ||
+          !/^\d+$/.test(variantId)
+        ) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Invalid variant ID."
+            },
+            400
+          );
+        }
+
+        const existing =
+          await env.DB
+            .prepare(`
+              SELECT id
+              FROM product_variants
+              WHERE id = ?
+              LIMIT 1
+            `)
+            .bind(variantId)
+            .first();
+
+        if (!existing) {
+
+          return json(
+            {
+              ok: false,
+              error:
+                "Variant not found."
+            },
+            404
+          );
+        }
+
+        await env.DB
+          .prepare(`
+            DELETE FROM product_variants
+            WHERE id = ?
+          `)
+          .bind(variantId)
+          .run();
+
+        return json({
+          ok: true,
+          message:
+            "Product variant deleted successfully."
+        });
+
+      } catch (error) {
+
+        return json(
+          {
+            ok: false,
+            error:
+              error.message
+          },
+          500
+        );
+      }
+    }
+
+    // ========================================================
+    // SERVE CANVO WEBSITE
+    // ========================================================
+
     return env.ASSETS.fetch(
       request
     );
-
   }
-
 };
-
 
 // ============================================================
 // SLUG GENERATOR
 // ============================================================
 
-function createSlug(
-  value
-) {
+function createSlug(value) {
 
   const slug =
     String(value)
@@ -2964,8 +2831,8 @@ function createSlug(
         ""
       );
 
-
-  return slug ||
-    `product-${Date.now()}`;
-
+  return (
+    slug ||
+    `product-${Date.now()}`
+  );
 }
