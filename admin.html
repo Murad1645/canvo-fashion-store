@@ -1520,6 +1520,187 @@
 
 </div>
 
+<!-- =========================================
+     STOCK UPDATE MODAL
+     ========================================= -->
+
+<div
+  class="modal"
+  id="stockModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <div>
+
+        <h3>
+          Update Stock
+        </h3>
+
+        <p
+          id="stockModalProduct"
+          style="
+            margin:5px 0 0;
+            color:#777;
+            font-size:13px;
+          "
+        >
+          Loading...
+        </p>
+
+      </div>
+
+
+      <button
+        class="close-modal"
+        onclick="closeStockModal()"
+        type="button"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <form
+      id="stockUpdateForm"
+      onsubmit="updateStock(event)"
+    >
+
+      <input
+        type="hidden"
+        id="stockVariantId"
+      >
+
+
+      <div class="form-group">
+
+        <label>
+          Product
+        </label>
+
+        <input
+          type="text"
+          id="stockProductName"
+          readonly
+        >
+
+      </div>
+
+
+      <div
+        style="
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:15px;
+        "
+      >
+
+        <div class="form-group">
+
+          <label>
+            Size
+          </label>
+
+          <input
+            type="text"
+            id="stockSize"
+            readonly
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Color
+          </label>
+
+          <input
+            type="text"
+            id="stockColor"
+            readonly
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          SKU
+        </label>
+
+        <input
+          type="text"
+          id="stockSku"
+          readonly
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          Stock Quantity
+        </label>
+
+        <input
+          type="number"
+          id="stockQuantity"
+          min="0"
+          step="1"
+          required
+        >
+
+      </div>
+
+
+      <div
+        id="stockUpdateMessage"
+        class="form-message"
+      ></div>
+
+
+      <div
+        style="
+          display:flex;
+          justify-content:flex-end;
+          gap:10px;
+          margin-top:20px;
+        "
+      >
+
+        <button
+          type="button"
+          class="secondary-button"
+          onclick="closeStockModal()"
+        >
+          Cancel
+        </button>
+
+
+        <button
+          type="submit"
+          class="primary-button"
+        >
+          Update Stock
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+  
   <script>
 
 
@@ -2586,6 +2767,251 @@ async function loadStock() {
 
 }
 
+
+// =========================================
+// STOCK UPDATE MODAL
+// =========================================
+
+function openStockModal(variantId) {
+
+  const modal =
+    document.getElementById(
+      "stockModal"
+    );
+
+  const row =
+    document.querySelector(
+      `button[onclick="openStockModal(${variantId})"]`
+    )?.closest("tr");
+
+
+  if (!row) {
+
+    console.error(
+      "Stock row not found."
+    );
+
+    return;
+
+  }
+
+
+  const cells =
+    row.querySelectorAll("td");
+
+
+  const product =
+    cells[0]?.innerText.trim() || "";
+
+  const size =
+    cells[1]?.innerText.trim() || "";
+
+  const color =
+    cells[2]?.innerText.trim() || "";
+
+  const sku =
+    cells[3]?.innerText.trim() || "";
+
+  const stock =
+    cells[4]?.innerText.trim() || "0";
+
+
+  document.getElementById(
+    "stockVariantId"
+  ).value = variantId;
+
+
+  document.getElementById(
+    "stockProductName"
+  ).value = product;
+
+
+  document.getElementById(
+    "stockSize"
+  ).value = size;
+
+
+  document.getElementById(
+    "stockColor"
+  ).value = color;
+
+
+  document.getElementById(
+    "stockSku"
+  ).value = sku;
+
+
+  document.getElementById(
+    "stockQuantity"
+  ).value = Number(stock) || 0;
+
+
+  document.getElementById(
+    "stockUpdateMessage"
+  ).textContent = "";
+
+
+  modal.classList.add("show");
+
+
+  setTimeout(() => {
+
+    document.getElementById(
+      "stockQuantity"
+    ).focus();
+
+  }, 100);
+
+}
+
+
+// =========================================
+// UPDATE STOCK
+// =========================================
+
+async function updateStock(event) {
+
+  event.preventDefault();
+
+
+  const variantId =
+    document.getElementById(
+      "stockVariantId"
+    ).value;
+
+
+  const quantity =
+    Number(
+      document.getElementById(
+        "stockQuantity"
+      ).value
+    );
+
+
+  const message =
+    document.getElementById(
+      "stockUpdateMessage"
+    );
+
+
+  if (
+    !variantId ||
+    !Number.isInteger(quantity) ||
+    quantity < 0
+  ) {
+
+    message.textContent =
+      "Please enter a valid stock quantity.";
+
+    message.className =
+      "form-message error";
+
+    return;
+
+  }
+
+
+  message.textContent =
+    "Updating stock...";
+
+  message.className =
+    "form-message";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/admin/variants/${variantId}`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          credentials: "include",
+
+          body: JSON.stringify({
+            stock_quantity:
+              quantity
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to update stock."
+      );
+
+    }
+
+
+    message.textContent =
+      "Stock updated successfully.";
+
+    message.className =
+      "form-message success";
+
+
+    // Reload stock table
+    await loadStock();
+
+
+    // Close modal
+    setTimeout(() => {
+
+      closeStockModal();
+
+    }, 700);
+
+
+  } catch (error) {
+
+    console.error(
+      "Update stock error:",
+      error
+    );
+
+
+    message.textContent =
+      error.message ||
+      "Failed to update stock.";
+
+    message.className =
+      "form-message error";
+
+  }
+
+}
+
+
+// =========================================
+// CLOSE STOCK MODAL
+// =========================================
+
+function closeStockModal() {
+
+  document
+    .getElementById(
+      "stockModal"
+    )
+    .classList.remove(
+      "show"
+    );
+
+}
 // =========================================
 // ORDER MANAGEMENT
 // =========================================
