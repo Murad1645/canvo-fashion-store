@@ -1362,7 +1362,168 @@ if (
         );
       }
     }
+// ========================================================
+// ADMIN — UPDATE STOCK
+// ========================================================
 
+if (
+  url.pathname.startsWith("/api/admin/variants/") &&
+  request.method === "PUT"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+
+  }
+
+
+  try {
+
+    const variantId =
+      url.pathname
+        .split("/")
+        .pop();
+
+
+    if (
+      !variantId ||
+      !/^\d+$/.test(variantId)
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error: "Invalid variant ID."
+        },
+        400
+      );
+
+    }
+
+
+    const body =
+      await request.json();
+
+
+    const stockQuantity =
+      Number(
+        body.stock_quantity
+      );
+
+
+    if (
+      !Number.isInteger(
+        stockQuantity
+      ) ||
+      stockQuantity < 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Stock quantity must be a non-negative integer."
+        },
+        400
+      );
+
+    }
+
+
+    const variant =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id,
+            size,
+            color,
+            sku,
+            stock_quantity
+          FROM product_variants
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(variantId)
+        .first();
+
+
+    if (!variant) {
+
+      return json(
+        {
+          ok: false,
+          error: "Variant not found."
+        },
+        404
+      );
+
+    }
+
+
+    await env.DB
+      .prepare(`
+        UPDATE product_variants
+        SET
+          stock_quantity = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(
+        stockQuantity,
+        variantId
+      )
+      .run();
+
+
+    return json({
+      ok: true,
+      message:
+        "Stock updated successfully.",
+      variant: {
+        id: variant.id,
+        product_id: variant.product_id,
+        size: variant.size,
+        color: variant.color,
+        sku: variant.sku,
+        stock_quantity:
+          stockQuantity
+      }
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Update stock error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
     // ========================================================
 // ADMIN — GET ALL CUSTOMERS
 // ========================================================
