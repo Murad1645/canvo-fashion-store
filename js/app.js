@@ -1618,22 +1618,15 @@ function subscribeNewsletter(event) {
 
 function checkout() {
 
-  const cart =
-    getCart();
+  const cart = getCart();
 
   if (!cart.length) {
-
-    showToast(
-      "Your cart is empty."
-    );
-
+    showToast("Your cart is empty.");
     return;
   }
 
-  showToast(
-    "Checkout will be available soon."
-  );
-
+  window.location.href =
+    "checkout.html";
 }
 
 
