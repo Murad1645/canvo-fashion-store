@@ -2070,7 +2070,11 @@ if (section === "orders") {
 if (section === "customers") {
   loadCustomers();
 }
-
+  
+if (section === "stock") {
+  loadStock();
+}
+  
 }
 
 
@@ -2313,6 +2317,252 @@ async function loadCustomers() {
           class="loading"
         >
           Failed to load customers.
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+// =========================================
+// STOCK MANAGEMENT
+// =========================================
+
+async function loadStock() {
+
+  const table =
+    document.getElementById("stockTable");
+
+  if (!table) return;
+
+
+  table.innerHTML = `
+    <tr>
+      <td colspan="6" class="loading">
+        Loading stock...
+      </td>
+    </tr>
+  `;
+
+
+  try {
+
+    // Get all products
+    const productResponse =
+      await fetch(
+        "/api/admin/products",
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const productData =
+      await productResponse.json();
+
+
+    if (
+      !productResponse.ok ||
+      !productData.ok
+    ) {
+
+      throw new Error(
+        productData.error ||
+        "Failed to load products."
+      );
+
+    }
+
+
+    const products =
+      productData.products || [];
+
+
+    const stockRows = [];
+
+
+    // Get variants for every product
+    for (
+      const product of products
+    ) {
+
+      const variantResponse =
+        await fetch(
+          `/api/admin/products/${product.id}/variants`,
+          {
+            method: "GET",
+            credentials: "include"
+          }
+        );
+
+
+      const variantData =
+        await variantResponse.json();
+
+
+      if (
+        !variantResponse.ok ||
+        !variantData.ok
+      ) {
+
+        continue;
+
+      }
+
+
+      const variants =
+        variantData.variants || [];
+
+
+      variants.forEach(
+        variant => {
+
+          stockRows.push({
+
+            product:
+              product.name || "-",
+
+            size:
+              variant.size || "-",
+
+            color:
+              variant.color || "-",
+
+            sku:
+              variant.sku || "-",
+
+            stock:
+              Number(
+                variant.stock_quantity || 0
+              )
+
+          });
+
+        }
+      );
+
+    }
+
+
+    if (stockRows.length === 0) {
+
+      table.innerHTML = `
+        <tr>
+          <td
+            colspan="6"
+            class="empty"
+          >
+            No stock items found.
+          </td>
+        </tr>
+      `;
+
+      return;
+
+    }
+
+
+    table.innerHTML =
+      stockRows
+        .map(item => {
+
+          let status = "In Stock";
+          let statusClass = "active";
+
+
+          if (item.stock === 0) {
+
+            status = "Out of Stock";
+            statusClass = "inactive";
+
+          } else if (item.stock <= 5) {
+
+            status = "Low Stock";
+            statusClass = "inactive";
+
+          }
+
+
+          return `
+
+            <tr>
+
+              <td>
+                <strong>
+                  ${escapeHtml(
+                    item.product
+                  )}
+                </strong>
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  item.size
+                )}
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  item.color
+                )}
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  item.sku
+                )}
+              </td>
+
+
+              <td>
+                <strong>
+                  ${item.stock}
+                </strong>
+              </td>
+
+
+              <td>
+
+                <span
+                  class="status ${statusClass}"
+                >
+                  ${status}
+                </span>
+
+              </td>
+
+            </tr>
+
+          `;
+
+        })
+        .join("");
+
+
+    // Update dashboard stock count
+    updateStockCount();
+
+
+  } catch (error) {
+
+    console.error(
+      "Load stock error:",
+      error
+    );
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="6"
+          class="loading"
+        >
+          Failed to load stock.
         </td>
       </tr>
     `;
