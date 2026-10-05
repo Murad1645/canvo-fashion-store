@@ -735,108 +735,6 @@ function findMatchingVariant() {
 
 
 // ========================================================
-// UPDATE STOCK MESSAGE
-// ========================================================
-
-function updateDetailStock() {
-
-  const stock =
-    document.getElementById(
-      "detailStock"
-    );
-
-  if (!stock) return;
-
-  stock.className =
-    "detail-stock";
-
-  // No variants
-  if (!selectedProductVariants.length) {
-
-    stock.textContent =
-      "Currently unavailable.";
-
-    stock.classList.add(
-      "out-of-stock"
-    );
-
-    return;
-  }
-
-  // Need size
-  if (
-    hasSizes() &&
-    !selectedSize
-  ) {
-
-    stock.textContent =
-      "Please select a size.";
-
-    return;
-  }
-
-  // Need color
-  if (
-    hasColors() &&
-    !selectedColor
-  ) {
-
-    stock.textContent =
-      "Please select a color.";
-
-    return;
-  }
-
-  // Exact variant unavailable
-  if (!selectedVariant) {
-
-    stock.textContent =
-      "This combination is unavailable.";
-
-    stock.classList.add(
-      "out-of-stock"
-    );
-
-    return;
-  }
-
-  const quantity =
-    Number(
-      selectedVariant.stock_quantity
-    );
-
-  if (quantity <= 0) {
-
-    stock.textContent =
-      "Out of stock.";
-
-    stock.classList.add(
-      "out-of-stock"
-    );
-
-    return;
-  }
-
-  if (quantity <= 5) {
-
-    stock.textContent =
-      `Only ${quantity} left in stock.`;
-
-  } else {
-
-    stock.textContent =
-      `${quantity} available in stock.`;
-
-  }
-
-  stock.classList.add(
-    "in-stock"
-  );
-
-}
-
-
-// ========================================================
 // UPDATE ADD TO CART BUTTON
 // ========================================================
 
@@ -847,7 +745,18 @@ function updateDetailAddButton() {
       "detailAddToCart"
     );
 
+  const buyNowButton =
+    document.getElementById(
+      "detailBuyNow"
+    );
+
   if (!button) return;
+
+  button.disabled = true;
+
+  if (buyNowButton) {
+    buyNowButton.disabled = true;
+  }
 
   button.disabled = true;
 
@@ -884,36 +793,56 @@ function updateDetailAddButton() {
     return;
   }
 
-  // Variant not found
-  if (!selectedVariant) {
-
-    button.textContent =
-      "UNAVAILABLE";
-
-    return;
-  }
-
-  const stock =
-    Number(
-      selectedVariant.stock_quantity
-    );
-
-  if (stock <= 0) {
-
-    button.textContent =
-      "OUT OF STOCK";
-
-    return;
-  }
-
-  button.disabled =
-    false;
+// Variant not found
+if (!selectedVariant) {
 
   button.textContent =
-    "ADD TO CART";
+    "UNAVAILABLE";
 
+  if (buyNowButton) {
+    buyNowButton.disabled = true;
+    buyNowButton.textContent =
+      "UNAVAILABLE";
+  }
+
+  return;
 }
 
+const stock =
+  Number(
+    selectedVariant.stock_quantity
+  );
+
+if (stock <= 0) {
+
+  button.disabled = true;
+
+  button.textContent =
+    "OUT OF STOCK";
+
+  if (buyNowButton) {
+    buyNowButton.disabled = true;
+    buyNowButton.textContent =
+      "OUT OF STOCK";
+  }
+
+  return;
+}
+
+button.disabled = false;
+
+button.textContent =
+  "ADD TO CART";
+
+if (buyNowButton) {
+
+  buyNowButton.disabled = false;
+
+  buyNowButton.textContent =
+    "BUY NOW";
+}
+
+}
 
 // ========================================================
 // CHECK WHETHER PRODUCT HAS SIZES
@@ -1998,3 +1927,89 @@ document.addEventListener("click", function (event) {
   closeCart();
 
 });
+
+// ========================================================
+// BUY NOW
+// ========================================================
+
+function buyNowSelectedVariant() {
+
+  if (!selectedProduct) {
+    return;
+  }
+
+  if (!selectedVariant) {
+
+    showToast(
+      "Please select a valid size and color."
+    );
+
+    return;
+  }
+
+  const stock =
+    Number(
+      selectedVariant.stock_quantity
+    );
+
+  if (stock <= 0) {
+
+    showToast(
+      "This variant is out of stock."
+    );
+
+    return;
+  }
+
+  if (detailQuantity > stock) {
+
+    showToast(
+      `Only ${stock} available.`
+    );
+
+    return;
+  }
+
+  const buyNowItem = {
+
+    productId:
+      Number(selectedProduct.id),
+
+    variantId:
+      Number(selectedVariant.id),
+
+    name:
+      selectedProduct.name,
+
+    price:
+      Number(selectedProduct.price),
+
+    image:
+      selectedProduct.image,
+
+    size:
+      selectedVariant.size || "",
+
+    color:
+      selectedVariant.color || "",
+
+    sku:
+      selectedVariant.sku || "",
+
+    quantity:
+      Number(detailQuantity)
+
+  };
+
+  // Save only this product for Buy Now
+  localStorage.setItem(
+    "canvoBuyNow",
+    JSON.stringify([
+      buyNowItem
+    ])
+  );
+
+  // Go to checkout
+  window.location.href =
+    "checkout.html?buyNow=1";
+}
