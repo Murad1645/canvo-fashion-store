@@ -1722,29 +1722,237 @@
     }
 
 
+// =========================================
+// NAVIGATION
+// =========================================
 
-    // =========================================
-    // NAVIGATION
-    // =========================================
+function showSection(section) {
 
-    function showSection(section) {
+  const sections = [
+    "dashboard",
+    "products",
+    "orders",
+    "customers",
+    "stock"
+  ];
 
-      if (
-        section !== "dashboard"
-      ) {
+  // Hide all sections
+  sections.forEach(name => {
 
-        alert(
-          section
-            .charAt(0)
-            .toUpperCase() +
-          section.slice(1) +
-          " management will be added next."
-        );
+    const element =
+      document.getElementById(
+        name + "Section"
+      );
 
-      }
+    if (element) {
+      element.style.display = "none";
+    }
+
+  });
+
+
+  // Show selected section
+  const selectedSection =
+    document.getElementById(
+      section + "Section"
+    );
+
+  if (selectedSection) {
+    selectedSection.style.display = "block";
+  }
+
+
+  // Update active sidebar button
+  document
+    .querySelectorAll(".nav button")
+    .forEach(button => {
+
+      button.classList.remove("active");
+
+    });
+
+
+  const buttons =
+    document.querySelectorAll(
+      ".nav button"
+    );
+
+  buttons.forEach(button => {
+
+    const onclick =
+      button.getAttribute("onclick") || "";
+
+    if (
+      onclick.includes(
+        `showSection('${section}')`
+      )
+    ) {
+
+      button.classList.add("active");
 
     }
 
+  });
+
+
+  // Load section data
+  if (section === "products") {
+    loadProducts();
+  }
+
+  if (section === "orders") {
+    loadOrders();
+  }
+
+  function showSection(section) {
+   ...
+}
+
+
+// =========================================
+// ORDER MANAGEMENT
+// =========================================
+
+async function loadOrders() {
+
+  const table =
+    document.getElementById("ordersTable");
+
+  if (!table) return;
+
+  table.innerHTML = `
+    <tr>
+      <td colspan="8" class="loading">
+        Loading orders...
+      </td>
+    </tr>
+  `;
+
+
+  try {
+
+    const response =
+      await fetch("/api/admin/orders");
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.error || "Failed to load orders"
+      );
+
+    }
+
+
+    const orders =
+      data.orders || [];
+
+
+    if (orders.length === 0) {
+
+      table.innerHTML = `
+        <tr>
+          <td colspan="8" class="loading">
+            No orders found.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    table.innerHTML =
+      orders.map(order => `
+
+        <tr>
+
+          <td>
+            <strong>
+              ${order.order_number || "-"}
+            </strong>
+          </td>
+
+
+          <td>
+            ${order.shipping_name || "-"}
+          </td>
+
+
+          <td>
+            ${order.shipping_phone || "-"}
+          </td>
+
+
+          <td>
+            ৳${Number(
+              order.total_amount || 0
+            ).toLocaleString()}
+          </td>
+
+
+          <td>
+            ${order.payment_method || "-"}
+            <br>
+            <small>
+              ${order.payment_status || ""}
+            </small>
+          </td>
+
+
+          <td>
+            ${order.order_status || "-"}
+          </td>
+
+
+          <td>
+            ${order.created_at
+              ? new Date(
+                  order.created_at
+                ).toLocaleDateString()
+              : "-"
+            }
+          </td>
+
+
+          <td>
+
+            <button
+              class="action-button"
+              onclick="viewOrder(${order.id})"
+            >
+              View
+            </button>
+
+          </td>
+
+        </tr>
+
+      `).join("");
+
+
+  } catch (error) {
+
+    console.error(
+      "Load orders error:",
+      error
+    );
+
+
+    table.innerHTML = `
+      <tr>
+        <td colspan="8" class="loading">
+          Failed to load orders.
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
 
 
     // =========================================
