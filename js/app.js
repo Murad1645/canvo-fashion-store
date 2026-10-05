@@ -738,6 +738,103 @@ function findMatchingVariant() {
 // UPDATE ADD TO CART BUTTON
 // ========================================================
 
+function updateDetailStock() {
+
+  const stock =
+    document.getElementById(
+      "detailStock"
+    );
+
+  if (!stock) return;
+
+  stock.className =
+    "detail-stock";
+
+  // No variants
+  if (!selectedProductVariants.length) {
+
+    stock.textContent =
+      "Currently unavailable.";
+
+    stock.classList.add(
+      "out-of-stock"
+    );
+
+    return;
+  }
+
+  // Need size
+  if (
+    hasSizes() &&
+    !selectedSize
+  ) {
+
+    stock.textContent =
+      "Please select a size.";
+
+    return;
+  }
+
+  // Need color
+  if (
+    hasColors() &&
+    !selectedColor
+  ) {
+
+    stock.textContent =
+      "Please select a color.";
+
+    return;
+  }
+
+  // Exact variant unavailable
+  if (!selectedVariant) {
+
+    stock.textContent =
+      "This combination is unavailable.";
+
+    stock.classList.add(
+      "out-of-stock"
+    );
+
+    return;
+  }
+
+  const quantity =
+    Number(
+      selectedVariant.stock_quantity
+    );
+
+  if (quantity <= 0) {
+
+    stock.textContent =
+      "Out of stock.";
+
+    stock.classList.add(
+      "out-of-stock"
+    );
+
+    return;
+  }
+
+  if (quantity <= 5) {
+
+    stock.textContent =
+      `Only ${quantity} left in stock.`;
+
+  } else {
+
+    stock.textContent =
+      `${quantity} available in stock.`;
+
+  }
+
+  stock.classList.add(
+    "in-stock"
+  );
+
+}
+
 function updateDetailAddButton() {
 
   const button =
