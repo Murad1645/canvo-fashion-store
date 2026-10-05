@@ -1449,6 +1449,163 @@ if (
   }
 
 }
+
+  // ========================================================
+// 11. ADMIN — GET SINGLE ORDER
+// ========================================================
+
+if (
+  url.pathname.startsWith(
+    "/api/admin/orders/"
+  ) &&
+  request.method === "GET"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+
+  }
+
+
+  try {
+
+    const orderId =
+      url.pathname
+        .split("/")
+        .pop();
+
+
+    if (
+      !orderId ||
+      !/^\d+$/.test(orderId)
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error: "Invalid order ID."
+        },
+        400
+      );
+
+    }
+
+
+    // -----------------------------------------
+    // GET ORDER
+    // -----------------------------------------
+
+    const order =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            order_number,
+            customer_id,
+            subtotal,
+            shipping_fee,
+            total_amount,
+            payment_method,
+            payment_status,
+            order_status,
+            shipping_name,
+            shipping_phone,
+            shipping_address,
+            shipping_city,
+            notes,
+            discount,
+            partial_payment,
+            created_at,
+            updated_at
+          FROM orders
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(orderId)
+        .first();
+
+
+    if (!order) {
+
+      return json(
+        {
+          ok: false,
+          error: "Order not found."
+        },
+        404
+      );
+
+    }
+
+
+    // -----------------------------------------
+    // GET ORDER ITEMS
+    // -----------------------------------------
+
+    const {
+      results: items
+    } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id,
+            variant_id,
+            product_name,
+            size,
+            color,
+            quantity,
+            unit_price,
+            subtotal
+          FROM order_items
+          WHERE order_id = ?
+          ORDER BY id ASC
+        `)
+        .bind(orderId)
+        .all();
+
+
+    return json({
+      ok: true,
+      order: {
+        ...order,
+        items
+      }
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Get single order error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
     // ========================================================
     // 10. ADMIN — GET ALL PRODUCTS
     // ========================================================
