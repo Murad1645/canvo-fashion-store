@@ -1362,7 +1362,93 @@ if (
         );
       }
     }
+// ========================================================
+// 10. ADMIN — GET ALL ORDERS
+// ========================================================
 
+if (
+  url.pathname ===
+    "/api/admin/orders" &&
+  request.method === "GET"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+
+  }
+
+
+  try {
+
+    const {
+      results
+    } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            order_number,
+            customer_id,
+            subtotal,
+            shipping_fee,
+            total_amount,
+            payment_method,
+            payment_status,
+            order_status,
+            shipping_name,
+            shipping_phone,
+            shipping_address,
+            shipping_city,
+            notes,
+            discount,
+            partial_payment,
+            created_at,
+            updated_at
+          FROM orders
+          ORDER BY id DESC
+        `)
+        .all();
+
+
+    return json({
+      ok: true,
+      orders: results
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Get admin orders error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error:
+          error.message
+      },
+      500
+    );
+
+  }
+
+}
     // ========================================================
     // 10. ADMIN — GET ALL PRODUCTS
     // ========================================================
