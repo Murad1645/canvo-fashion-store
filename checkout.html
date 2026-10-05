@@ -1068,29 +1068,42 @@
        LOAD CART
     ===================================================== */
 
-    function loadCheckoutCart() {
+  function loadCheckoutCart() {
 
-      try {
+  try {
 
-        checkoutCart =
-          JSON.parse(
-            localStorage.getItem("canvoCart")
-          ) || [];
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
 
-      } catch (error) {
+    const isBuyNow =
+      params.get("buyNow") === "1";
 
-        console.error(
-          "Unable to load cart:",
-          error
-        );
+    const storageKey =
+      isBuyNow
+        ? "canvoBuyNow"
+        : "canvoCart";
 
-        checkoutCart = [];
+    checkoutCart =
+      JSON.parse(
+        localStorage.getItem(storageKey)
+      ) || [];
 
-      }
+  } catch (error) {
 
-      renderCheckout();
+    console.error(
+      "Unable to load checkout items:",
+      error
+    );
 
-    }
+    checkoutCart = [];
+
+  }
+
+  renderCheckout();
+
+}
 
 
     /* =====================================================
@@ -1294,10 +1307,23 @@
         quantity;
 
 
-      localStorage.setItem(
-        "canvoCart",
-        JSON.stringify(checkoutCart)
-      );
+      const params =
+  new URLSearchParams(
+    window.location.search
+  );
+
+const isBuyNow =
+  params.get("buyNow") === "1";
+
+const storageKey =
+  isBuyNow
+    ? "canvoBuyNow"
+    : "canvoCart";
+
+localStorage.setItem(
+  storageKey,
+  JSON.stringify(checkoutCart)
+);
 
 
       renderCheckout();
