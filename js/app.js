@@ -32,7 +32,24 @@ async function initializeStore() {
 
   await loadProducts();
 
-  renderProducts();
+  /*
+   * CANVO uses two page types:
+   * 1. Store pages with #productGrid
+   * 2. Dedicated product page with #productPage
+   */
+
+  const productPage =
+    document.getElementById("productPage");
+
+  if (productPage) {
+
+    await initializeProductPage();
+
+  } else {
+
+    renderProducts();
+
+  }
 
   updateCount();
 
@@ -79,7 +96,7 @@ async function loadProducts() {
               ? Number(product.old_price)
               : null,
 
-                   image:
+          image:
             product.image_url || "",
 
           images:
@@ -180,7 +197,7 @@ function renderProducts(list = products) {
 
           <div
             class="product-image"
-            onclick="openProductDetails(${product.id})"
+            onclick="goToProduct(${product.id})"
             style="cursor:pointer;"
           >
 
@@ -199,7 +216,7 @@ function renderProducts(list = products) {
             </p>
 
             <h3
-              onclick="openProductDetails(${product.id})"
+              onclick="goToProduct(${product.id})"
               style="cursor:pointer;"
             >
               ${escapeHtml(product.name)}
@@ -218,7 +235,7 @@ function renderProducts(list = products) {
             <button
               class="add-btn"
               type="button"
-              onclick="openProductDetails(${product.id})"
+              onclick="goToProduct(${product.id})"
             >
               VIEW DETAILS
             </button>
@@ -234,37 +251,92 @@ function renderProducts(list = products) {
 
 
 // ========================================================
-// OPEN PRODUCT DETAILS
+// PRODUCT PAGE NAVIGATION
 // ========================================================
 
-async function openProductDetails(productId) {
+function goToProduct(productId) {
 
-  const product =
-    products.find(
-      item => Number(item.id) === Number(productId)
-    );
+  const id = Number(productId);
 
-  if (!product) {
-
+  if (!id) {
     showToast("Product not found.");
+    return;
+  }
+
+  window.location.href =
+    `product.html?id=${encodeURIComponent(id)}`;
+
+}
+
+
+// ========================================================
+// OPEN PRODUCT DETAILS — COMPATIBILITY REDIRECT
+// ========================================================
+
+function openProductDetails(productId) {
+
+  goToProduct(productId);
+
+}
+
+
+// ========================================================
+// INITIALIZE DEDICATED PRODUCT PAGE
+// ========================================================
+
+async function initializeProductPage() {
+
+  const params =
+    new URLSearchParams(window.location.search);
+
+  const productId =
+    Number(params.get("id"));
+
+  if (!productId) {
+
+    showProductPageMessage(
+      "Product not found.",
+      "Please return to the shop and select a product."
+    );
 
     return;
   }
 
-  selectedProduct = product;
+  const product =
+    products.find(
+      item => Number(item.id) === productId
+    );
 
-  selectedProductVariants = [];
+  if (!product) {
 
-  selectedSize = null;
+    showProductPageMessage(
+      "Product not found.",
+      "This product may no longer be available."
+    );
 
-  selectedColor = null;
+    return;
+  }
 
-  selectedVariant = null;
+  selectedProduct =
+    product;
 
-  detailQuantity = 1;
+  selectedProductVariants =
+    [];
+
+  selectedSize =
+    null;
+
+  selectedColor =
+    null;
+
+  selectedVariant =
+    null;
+
+  detailQuantity =
+    1;
 
   // --------------------------------------------
-  // Fill product information
+  // Product information
   // --------------------------------------------
 
   const image =
@@ -297,15 +369,13 @@ async function openProductDetails(productId) {
       "detailProductDescription"
     );
 
-   if (image) {
+  if (image) {
 
     image.src =
       product.image || "";
 
     image.alt =
       product.name || "";
-
-    renderProductGallery(product);
 
   }
 
@@ -360,39 +430,41 @@ async function openProductDetails(productId) {
 
   }
 
+  const breadcrumbName =
+    document.getElementById(
+      "productBreadcrumbName"
+    );
+
+  if (breadcrumbName) {
+
+    breadcrumbName.textContent =
+      product.name || "Product";
+
+  }
+
+  // --------------------------------------------
+  // Page title
+  // --------------------------------------------
+
+  document.title =
+    `${product.name} | CANVO`;
+
+  // --------------------------------------------
+  // Gallery
+  // --------------------------------------------
+
+  renderProductGallery(
+    product
+  );
+
   // --------------------------------------------
   // Reset quantity
   // --------------------------------------------
 
-  const quantity =
-    document.getElementById(
-      "detailQuantity"
-    );
+  detailQuantity =
+    1;
 
-  if (quantity) {
-
-    quantity.textContent =
-      "1";
-
-  }
-
-  // --------------------------------------------
-  // Show modal
-  // --------------------------------------------
-
-  const modal =
-    document.getElementById(
-      "productModal"
-    );
-
-  if (modal) {
-
-    modal.classList.add("active");
-
-    document.body.style.overflow =
-      "hidden";
-
-  }
+  updateDetailQuantityDisplay();
 
   // --------------------------------------------
   // Loading state
@@ -410,11 +482,54 @@ async function openProductDetails(productId) {
 
 }
 
+
+// ========================================================
+// PRODUCT PAGE ERROR MESSAGE
+// ========================================================
+
+function showProductPageMessage(
+  title,
+  message
+) {
+
+  const page =
+    document.getElementById(
+      "productPage"
+    );
+
+  if (!page) return;
+
+  page.innerHTML = `
+    <div class="product-page-message">
+
+      <h1>
+        ${escapeHtml(title)}
+      </h1>
+
+      <p>
+        ${escapeHtml(message)}
+      </p>
+
+      <a
+        href="index.html"
+        class="product-back-button"
+      >
+        BACK TO SHOP
+      </a>
+
+    </div>
+  `;
+
+}
+
+
 // ========================================================
 // PRODUCT IMAGE GALLERY
 // ========================================================
 
-function getProductGalleryImages(product) {
+function getProductGalleryImages(
+  product
+) {
 
   if (!product) {
     return [];
@@ -426,7 +541,6 @@ function getProductGalleryImages(product) {
           .slice()
           .sort((a, b) => {
 
-            // Main image first
             const mainDiff =
               Number(b?.is_main || 0) -
               Number(a?.is_main || 0);
@@ -435,7 +549,6 @@ function getProductGalleryImages(product) {
               return mainDiff;
             }
 
-            // Then display order
             const orderDiff =
               Number(a?.sort_order || 0) -
               Number(b?.sort_order || 0);
@@ -444,7 +557,6 @@ function getProductGalleryImages(product) {
               return orderDiff;
             }
 
-            // Finally database ID
             return Number(a?.id || 0) -
               Number(b?.id || 0);
 
@@ -456,7 +568,7 @@ function getProductGalleryImages(product) {
           )
       : [];
 
-  // Fallback to the existing main image
+  // Fallback to products.image_url
   if (
     !images.length &&
     product.image
@@ -478,11 +590,22 @@ function getProductGalleryImages(product) {
 }
 
 
-function renderProductGallery(product) {
+// ========================================================
+// RENDER PRODUCT GALLERY
+// ========================================================
+
+function renderProductGallery(
+  product
+) {
 
   const image =
     document.getElementById(
       "detailProductImage"
+    );
+
+  const thumbnails =
+    document.getElementById(
+      "productThumbnails"
     );
 
   if (!image) {
@@ -490,90 +613,35 @@ function renderProductGallery(product) {
   }
 
   const galleryImages =
-    getProductGalleryImages(product);
+    getProductGalleryImages(
+      product
+    );
 
   if (!galleryImages.length) {
     return;
   }
 
-  // Check whether gallery already exists
-  let gallery =
-    document.getElementById(
-      "canvoProductGallery"
-    );
+  // --------------------------------------------
+  // Set main image
+  // --------------------------------------------
 
-  // Create gallery container
-  if (!gallery) {
+  image.src =
+    galleryImages[0].image_url;
 
-    gallery =
-      document.createElement("div");
+  image.alt =
+    `${product.name || "Product"} image 1`;
 
-    gallery.id =
-      "canvoProductGallery";
+  // --------------------------------------------
+  // Render thumbnails
+  // --------------------------------------------
 
-    gallery.style.width =
-      "100%";
-
-    gallery.style.boxSizing =
-      "border-box";
-
-    gallery.style.marginTop =
-      "10px";
-
-    // Put thumbnails below main image
-    image.insertAdjacentElement(
-      "afterend",
-      gallery
-    );
-
-  }
-
-  // Main image styling
-  image.style.display =
-    "block";
-
-  image.style.width =
-    "100%";
-
-  image.style.objectFit =
-    "cover";
-
-  // Clear old thumbnails
-  gallery.innerHTML = "";
-
-  // If only one image, don't show thumbnails
-  if (galleryImages.length <= 1) {
+  if (!thumbnails) {
     return;
   }
 
-  // Thumbnail container
-  const thumbnails =
-    document.createElement("div");
+  thumbnails.innerHTML =
+    "";
 
-  thumbnails.style.display =
-    "flex";
-
-  thumbnails.style.flexWrap =
-    "wrap";
-
-  thumbnails.style.gap =
-    "12px";
-
-  thumbnails.style.marginTop =
-    "12px";
-
-  thumbnails.style.width =
-    "100%";
-
-  thumbnails.style.boxSizing =
-    "border-box";
-
-  gallery.appendChild(
-    thumbnails
-  );
-
-
-  // Create each thumbnail
   galleryImages.forEach(
     (galleryImage, index) => {
 
@@ -593,42 +661,6 @@ function renderProductGallery(product) {
         `View image ${index + 1}`
       );
 
-      // Thumbnail size
-      button.style.width =
-        "92px";
-
-      button.style.height =
-        "92px";
-
-      button.style.padding =
-        "0";
-
-      button.style.margin =
-        "0";
-
-      // First image selected
-      button.style.border =
-        index === 0
-          ? "2px solid #0f9f6e"
-          : "1px solid #d8d8d8";
-
-      button.style.borderRadius =
-        "7px";
-
-      button.style.background =
-        "#fff";
-
-      button.style.overflow =
-        "hidden";
-
-      button.style.cursor =
-        "pointer";
-
-      button.style.boxSizing =
-        "border-box";
-
-
-      // Thumbnail image
       const thumb =
         document.createElement(
           "img"
@@ -641,61 +673,49 @@ function renderProductGallery(product) {
         `${product.name || "Product"} image ${index + 1}`;
 
       thumb.loading =
-        "lazy";
-
-      thumb.style.width =
-        "100%";
-
-      thumb.style.height =
-        "100%";
-
-      thumb.style.objectFit =
-        "cover";
-
-      thumb.style.display =
-        "block";
-
+        index === 0
+          ? "eager"
+          : "lazy";
 
       button.appendChild(
         thumb
       );
 
+      if (index === 0) {
 
-      // Click thumbnail
+        button.classList.add(
+          "active"
+        );
+
+      }
+
       button.addEventListener(
         "click",
         () => {
 
-          // Change main image
           image.src =
             galleryImage.image_url;
 
           image.alt =
             `${product.name || "Product"} image ${index + 1}`;
 
-
-          // Update selected thumbnail border
           thumbnails
             .querySelectorAll(
               ".canvo-product-thumbnail"
             )
             .forEach(
-              (
-                thumbnailButton,
-                thumbnailIndex
-              ) => {
-
-                thumbnailButton.style.border =
-                  thumbnailIndex === index
-                    ? "2px solid #0f9f6e"
-                    : "1px solid #d8d8d8";
-
-              }
+              thumbnail =>
+                thumbnail.classList.remove(
+                  "active"
+                )
             );
+
+          button.classList.add(
+            "active"
+          );
 
         }
       );
-
 
       thumbnails.appendChild(
         button
@@ -705,6 +725,8 @@ function renderProductGallery(product) {
   );
 
 }
+
+
 // ========================================================
 // LOAD PRODUCT VARIANTS
 // ========================================================
@@ -1269,6 +1291,7 @@ if (buyNowButton) {
 
 }
 
+
 // ========================================================
 // CHECK WHETHER PRODUCT HAS SIZES
 // ========================================================
@@ -1507,55 +1530,15 @@ function addSelectedVariantToCart() {
 
 
 // ========================================================
-// CLOSE PRODUCT DETAILS
+// CLOSE PRODUCT DETAILS — COMPATIBILITY
 // ========================================================
 
 function closeProductDetails() {
 
-  const modal =
-    document.getElementById(
-      "productModal"
-    );
+  // Product details are now displayed
+  // on product.html instead of a modal.
 
-  if (modal) {
-
-    modal.classList.remove(
-      "active"
-    );
-
-  }
-
-  document.body.style.overflow =
-    "";
-
-  const productGallery =
-    document.getElementById(
-      "canvoProductGallery"
-    );
-
-  if (productGallery) {
-
-    productGallery.remove();
-
-  }
-
-  selectedProduct =
-    null;
-
-  selectedProductVariants =
-    [];
-
-  selectedSize =
-    null;
-
-  selectedColor =
-    null;
-
-  selectedVariant =
-    null;
-
-  detailQuantity =
-    1;
+  return;
 
 }
 
@@ -2215,9 +2198,9 @@ document.addEventListener(
       event.key === "Escape"
     ) {
 
-      closeProductDetails();
-
       closeCart();
+
+      closeSearch();
 
     }
 
