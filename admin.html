@@ -1701,6 +1701,189 @@
 
 </div>
   
+
+  <!-- =========================================
+       PRODUCT IMAGES MODAL
+       ========================================= -->
+
+  <div
+    class="modal"
+    id="productImagesModal"
+  >
+
+    <div class="modal-box large">
+
+      <div class="modal-header">
+
+        <div>
+
+          <h3>
+            Product Images
+          </h3>
+
+          <p
+            id="productImagesProductName"
+            style="
+              margin:5px 0 0;
+              color:#777;
+              font-size:13px;
+            "
+          >
+            Loading...
+          </p>
+
+        </div>
+
+        <button
+          class="close-modal"
+          onclick="closeProductImagesModal()"
+          type="button"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <!-- IMAGE LIST -->
+
+      <div
+        id="productImagesGrid"
+        style="
+          display:grid;
+          grid-template-columns:repeat(4, 1fr);
+          gap:15px;
+        "
+      >
+
+        <div
+          class="loading"
+          style="grid-column:1/-1;"
+        >
+          Loading images...
+        </div>
+
+      </div>
+
+      <!-- ADD IMAGE -->
+
+      <div
+        style="
+          margin-top:25px;
+          padding-top:20px;
+          border-top:1px solid #e5e7eb;
+        "
+      >
+
+        <h4
+          style="
+            margin-bottom:15px;
+            font-size:16px;
+          "
+        >
+          Add Product Image
+        </h4>
+
+        <form id="productImageForm">
+
+          <div class="form-group">
+
+            <label for="productImageUrl">
+              Image URL *
+            </label>
+
+            <input
+              type="url"
+              id="productImageUrl"
+              placeholder="https://example.com/product-image.jpg"
+              required
+            >
+
+          </div>
+
+          <div class="form-row">
+
+            <div class="form-group">
+
+              <label for="productImageSortOrder">
+                Display Order
+              </label>
+
+              <input
+                type="number"
+                id="productImageSortOrder"
+                min="1"
+                step="1"
+                value="1"
+              >
+
+            </div>
+
+            <div
+              class="form-group"
+              style="
+                display:flex;
+                align-items:center;
+                padding-top:25px;
+              "
+            >
+
+              <label
+                style="
+                  display:flex;
+                  align-items:center;
+                  gap:8px;
+                  cursor:pointer;
+                "
+              >
+
+                <input
+                  type="checkbox"
+                  id="productImageIsMain"
+                >
+
+                <span>
+                  Set as Main Image
+                </span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+          <div
+            id="productImageFormMessage"
+            class="form-message"
+          ></div>
+
+          <div class="modal-actions">
+
+            <button
+              type="button"
+              class="cancel-button"
+              onclick="closeProductImagesModal()"
+            >
+              Close
+            </button>
+
+            <button
+              type="submit"
+              class="save-button"
+              id="addProductImageButton"
+            >
+              Add Image
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
   <script>
 
 
@@ -2727,193 +2910,57 @@ async function loadStock() {
 
                 <span
                   class="status ${statusClass}"
-c
-  <div class="modal-box large">
+                  >
+                    ${status}
+                  </span>
 
-    <div class="modal-header">
+              </td>
 
-      <div>
+              <td>
+                <button
+                  type="button"
+                  class="action-button edit-button"
+                  onclick="openStockModal(${Number(item.id)})"
+                >
+                  Edit
+                </button>
+              </td>
 
-        <h3>
-          Product Images
-        </h3>
+            </tr>
 
-        <p
-          id="productImagesProductName"
-          style="
-            margin:5px 0 0;
-            color:#777;
-            font-size:13px;
-          "
+          `;
+
+        })
+        .join("");
+
+
+    await updateStockCount();
+
+
+  } catch (error) {
+
+    console.error(
+      "Load stock error:",
+      error
+    );
+
+
+    table.innerHTML = `
+      <tr>
+        <td
+          colspan="7"
+          class="loading"
         >
-          Loading...
-        </p>
+          Failed to load stock.
+        </td>
+      </tr>
+    `;
 
-      </div>
+  }
 
-
-      <button
-        class="close-modal"
-        onclick="closeProductImagesModal()"
-        type="button"
-      >
-        ×
-      </button>
-
-    </div>
+}
 
 
-    <!-- IMAGE LIST -->
-
-    <div
-      id="productImagesGrid"
-      style="
-        display:grid;
-        grid-template-columns:
-          repeat(4, 1fr);
-        gap:15px;
-      "
-    >
-
-      <div
-        class="loading"
-        style="grid-column:1/-1;"
-      >
-        Loading images...
-      </div>
-
-    </div>
-
-
-    <!-- ADD IMAGE -->
-
-    <div
-      style="
-        margin-top:25px;
-        padding-top:20px;
-        border-top:1px solid #e5e7eb;
-      "
-    >
-
-      <h4
-        style="
-          margin-bottom:15px;
-          font-size:16px;
-        "
-      >
-        Add Product Image
-      </h4>
-
-
-      <form id="productImageForm">
-
-
-        <div class="form-group">
-
-          <label for="productImageUrl">
-            Image URL *
-          </label>
-
-          <input
-            type="url"
-            id="productImageUrl"
-            placeholder="https://example.com/product-image.jpg"
-            required
-          >
-
-        </div>
-
-
-        <div class="form-row">
-
-          <div class="form-group">
-
-            <label for="productImageSortOrder">
-              Display Order
-            </label>
-
-            <input
-              type="number"
-              id="productImageSortOrder"
-              min="1"
-              step="1"
-              value="1"
-            >
-
-          </div>
-
-
-          <div
-            class="form-group"
-            style="
-              display:flex;
-              align-items:center;
-              padding-top:25px;
-            "
-          >
-
-            <label
-              style="
-                display:flex;
-                align-items:center;
-                gap:8px;
-                cursor:pointer;
-              "
-            >
-
-              <input
-                type="checkbox"
-                id="productImageIsMain"
-              >
-
-              <span>
-                Set as Main Image
-              </span>
-
-            </label>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="productImageFormMessage"
-          class="form-message"
-        ></div>
-
-
-        <div class="modal-actions">
-
-          <button
-            type="button"
-            class="cancel-button"
-            onclick="closeProductImagesModal()"
-          >
-            Close
-          </button>
-
-
-          <button
-            type="submit"
-            class="save-button"
-            id="addProductImageButton"
-          >
-            Add Image
-          </button>
-
-        </div>
-
-
-      </form>
-
-    </div>
-
-  </div>
-
-</div>
-    
-// =========================================
 // STOCK UPDATE MODAL
 // =========================================
 
