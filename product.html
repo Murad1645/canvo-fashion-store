@@ -549,6 +549,22 @@
     object-fit: contain;
   }
 </style>
+
+<style>
+  /* Product main image - fill the entire frame */
+  .canvo-main-image-wrap {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+  }
+
+  .canvo-main-image-wrap #detailProductImage {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    object-fit: cover !important;
+  }
+</style>
   
 </head>
 
