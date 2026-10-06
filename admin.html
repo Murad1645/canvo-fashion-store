@@ -2924,10 +2924,9 @@ function openStockModal(variantId) {
       "stockModal"
     );
 
-  const row =
-    document.querySelector(
-      `button[onclick="openStockModal(${variantId})"]`
-    )?.closest("tr");
+ const row = document.querySelector(
+  'button[onclick="openStockModal(' + variantId + ')"]'
+)?.closest("tr");
 
 
   if (!row) {
