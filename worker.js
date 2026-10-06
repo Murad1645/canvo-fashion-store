@@ -1917,6 +1917,362 @@ if (
       }
     }
 
+
+    // ========================================================
+// PRODUCT IMAGES — ADMIN
+// ========================================================
+
+// GET ALL IMAGES FOR A PRODUCT
+if (
+  url.pathname.match(/^\/api\/admin\/products\/\d+\/images$/) &&
+  request.method === "GET"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+  }
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const productId =
+      Number(parts[4]);
+
+    if (
+      !Number.isInteger(productId) ||
+      productId <= 0
+    ) {
+      return json(
+        {
+          ok: false,
+          error: "Invalid product ID."
+        },
+        400
+      );
+    }
+
+    const product =
+      await env.DB
+        .prepare(`
+          SELECT id, name
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(productId)
+        .first();
+
+    if (!product) {
+      return json(
+        {
+          ok: false,
+          error: "Product not found."
+        },
+        404
+      );
+    }
+
+    const { results } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            product_id,
+            image_url,
+            sort_order,
+            is_main,
+            created_at,
+            updated_at
+          FROM product_images
+          WHERE product_id = ?
+          ORDER BY sort_order ASC, id ASC
+        `)
+        .bind(productId)
+        .all();
+
+    return json({
+      ok: true,
+      product,
+      images: results
+    });
+
+  } catch (error) {
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
+
+
+// ADD NEW PRODUCT IMAGE
+if (
+  url.pathname.match(/^\/api\/admin\/products\/\d+\/images$/) &&
+  request.method === "POST"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+  }
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const productId =
+      Number(parts[4]);
+
+    if (
+      !Number.isInteger(productId) ||
+      productId <= 0
+    ) {
+      return json(
+        {
+          ok: false,
+          error: "Invalid product ID."
+        },
+        400
+      );
+    }
+
+    const product =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(productId)
+        .first();
+
+    if (!product) {
+      return json(
+        {
+          ok: false,
+          error: "Product not found."
+        },
+        404
+      );
+    }
+
+    const body =
+      await request.json();
+
+    const imageUrl =
+      body?.image_url?.trim();
+
+    const sortOrder =
+      Number.isInteger(
+        Number(body?.sort_order)
+      )
+        ? Number(body.sort_order)
+        : 0;
+
+    const isMain =
+      body?.is_main ? 1 : 0;
+
+
+    if (!imageUrl) {
+      return json(
+        {
+          ok: false,
+          error: "Image URL is required."
+        },
+        400
+      );
+    }
+
+
+    // If this image is Main,
+    // remove Main status from other images.
+    if (isMain === 1) {
+
+      await env.DB
+        .prepare(`
+          UPDATE product_images
+          SET is_main = 0,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE product_id = ?
+        `)
+        .bind(productId)
+        .run();
+
+    }
+
+
+    const result =
+      await env.DB
+        .prepare(`
+          INSERT INTO product_images
+          (
+            product_id,
+            image_url,
+            sort_order,
+            is_main
+          )
+          VALUES (?, ?, ?, ?)
+        `)
+        .bind(
+          productId,
+          imageUrl,
+          sortOrder,
+          isMain
+        )
+        .run();
+
+
+    return json(
+      {
+        ok: true,
+        message:
+          "Product image added successfully.",
+        image_id:
+          result.meta.last_row_id
+      },
+      201
+    );
+
+  } catch (error) {
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
+
+
+// DELETE PRODUCT IMAGE
+if (
+  url.pathname.match(/^\/api\/admin\/product-images\/\d+$/) &&
+  request.method === "DELETE"
+) {
+
+  const admin =
+    await getAuthenticatedAdmin(
+      request,
+      env
+    );
+
+  if (!admin) {
+    return json(
+      {
+        ok: false,
+        error: "Unauthorized."
+      },
+      401
+    );
+  }
+
+  try {
+
+    const parts =
+      url.pathname.split("/");
+
+    const imageId =
+      Number(parts[4]);
+
+    if (
+      !Number.isInteger(imageId) ||
+      imageId <= 0
+    ) {
+      return json(
+        {
+          ok: false,
+          error: "Invalid image ID."
+        },
+        400
+      );
+    }
+
+    const image =
+      await env.DB
+        .prepare(`
+          SELECT id
+          FROM product_images
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(imageId)
+        .first();
+
+    if (!image) {
+      return json(
+        {
+          ok: false,
+          error: "Product image not found."
+        },
+        404
+      );
+    }
+
+    await env.DB
+      .prepare(`
+        DELETE FROM product_images
+        WHERE id = ?
+      `)
+      .bind(imageId)
+      .run();
+
+    return json({
+      ok: true,
+      message:
+        "Product image deleted successfully."
+    });
+
+  } catch (error) {
+
+    return json(
+      {
+        ok: false,
+        error: error.message
+      },
+      500
+    );
+
+  }
+
+}
+    
     // ========================================================
     // 11. ADMIN — CREATE PRODUCT
     // ========================================================
