@@ -1209,58 +1209,152 @@ if (
     }
 
     // ========================================================
-    // 8. PUBLIC ACTIVE PRODUCTS
-    // ========================================================
+// 8. PUBLIC ACTIVE PRODUCTS
+// ========================================================
 
-    if (
-      url.pathname ===
-        "/api/products" &&
-      request.method === "GET"
-    ) {
+if (
+  url.pathname ===
+    "/api/products" &&
+  request.method === "GET"
+) {
 
-      try {
+  try {
 
-        const {
-          results
-        } =
-          await env.DB
-            .prepare(`
-              SELECT
-                id,
-                name,
-                slug,
-                category,
-                description,
-                price,
-                old_price,
-                image_url,
-                status,
-                created_at
-              FROM products
-              WHERE status = 'active'
-              ORDER BY id DESC
-            `)
-            .all();
+    // ----------------------------------------------------
+    // GET ACTIVE PRODUCTS
+    // ----------------------------------------------------
 
-        return json({
-          ok: true,
-          products:
-            results
-        });
+    const {
+      results
+    } =
+      await env.DB
+        .prepare(`
+          SELECT
+            id,
+            name,
+            slug,
+            category,
+            description,
+            price,
+            old_price,
+            image_url,
+            status,
+            created_at
+          FROM products
+          WHERE status = 'active'
+          ORDER BY id DESC
+        `)
+        .all();
 
-      } catch (error) {
 
-        return json(
-          {
-            ok: false,
-            error:
-              error.message
-          },
-          500
-        );
-      }
-    }
+    // ----------------------------------------------------
+    // GET PRODUCT IMAGES
+    // ----------------------------------------------------
 
+    const productsWithImages =
+      await Promise.all(
+
+        results.map(
+          async product => {
+
+            const {
+              results: images
+            } =
+              await env.DB
+                .prepare(`
+                  SELECT
+                    id,
+                    image_url,
+                    sort_order,
+                    is_main
+                  FROM product_images
+                  WHERE product_id = ?
+                  ORDER BY
+                    is_main DESC,
+                    sort_order ASC,
+                    id ASC
+                `)
+                .bind(product.id)
+                .all();
+
+
+            // ------------------------------------------------
+            // FIND MAIN IMAGE
+            // ------------------------------------------------
+
+            const mainImage =
+              images.find(
+                image =>
+                  Number(image.is_main) === 1
+              );
+
+
+            // ------------------------------------------------
+            // MAIN IMAGE
+            //
+            // Priority:
+            // 1. product_images main image
+            // 2. first product_images image
+            // 3. old products.image_url
+            // ------------------------------------------------
+
+            const mainImageUrl =
+              mainImage?.image_url ||
+              images[0]?.image_url ||
+              product.image_url ||
+              null;
+
+
+            return {
+
+              ...product,
+
+              // Main/thumbnail image
+              image_url:
+                mainImageUrl,
+
+              // All product images
+              images
+
+            };
+
+          }
+        )
+
+      );
+
+
+    // ----------------------------------------------------
+    // RESPONSE
+    // ----------------------------------------------------
+
+    return json({
+      ok: true,
+      products:
+        productsWithImages
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Public products error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error:
+          error.message
+      },
+      500
+    );
+
+  }
+
+}
     // ========================================================
     // 9. PUBLIC PRODUCT VARIANTS
     // ========================================================
