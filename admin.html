@@ -2727,67 +2727,7 @@ async function loadStock() {
 
                 <span
                   class="status ${statusClass}"
-                >
-                  ${status}
-                </span>
-
-              </td>
-
-              <td>
-
-  <button
-    class="action-button"
-    onclick="openStockModal(${item.id})"
-  >
-    Edit
-  </button>
-
-</td>
-
-            </tr>
-
-          `;
-
-        })
-        .join("");
-
-
-    // Update dashboard stock count
-    updateStockCount();
-
-
-  } catch (error) {
-
-    console.error(
-      "Load stock error:",
-      error
-    );
-
-
-    table.innerHTML = `
-      <tr>
-        <td
-          colspan="6"
-          class="loading"
-        >
-          Failed to load stock.
-        </td>
-      </tr>
-    `;
-
-  }
-
-}
-
-<!-- =========================================
-     PRODUCT IMAGES MODAL
-     ========================================= -->
-
-<div
-  class="modal"
-  id="productImagesModal"
->
-
+c
   <div class="modal-box large">
 
     <div class="modal-header">
