@@ -1775,20 +1775,73 @@ function renderCart() {
         total +=
           price * quantity;
 
-        return `
-          <div class="cart-item">
+       return `
+  <div class="cart-item">
 
-            <img
-              src="${escapeHtml(item.image || "")}"
-              alt="${escapeHtml(item.name || "")}"
-            >
+    <strong class="cart-item-name">
+      ${escapeHtml(item.name || "")}
+    </strong>
 
-            <div class="cart-item-info">
+    <div class="cart-item-body">
 
-              <strong>
-                ${escapeHtml(item.name || "")}
-              </strong>
+      <img
+        src="${escapeHtml(item.image || "")}"
+        alt="${escapeHtml(item.name || "")}"
+      >
 
+      <div class="cart-item-info">
+
+        ${
+          item.size
+            ? `<small>Size: ${escapeHtml(item.size)}</small>`
+            : ""
+        }
+
+        ${
+          item.color
+            ? `<small>Color: ${escapeHtml(item.color)}</small>`
+            : ""
+        }
+
+        <small>
+          ৳${formatPrice(price)}
+        </small>
+
+        <div class="cart-item-actions">
+
+          <button
+            type="button"
+            onclick="changeCartQuantity(${index}, -1)"
+          >
+            −
+          </button>
+
+          <span>
+            ${quantity}
+          </span>
+
+          <button
+            type="button"
+            onclick="changeCartQuantity(${index}, 1)"
+          >
+            +
+          </button>
+
+          <button
+            type="button"
+            onclick="removeFromCart(${index})"
+          >
+            Remove
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+`;
               ${
                 item.size
                   ? `<small>Size: ${escapeHtml(item.size)}</small>`
