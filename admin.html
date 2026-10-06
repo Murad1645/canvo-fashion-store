@@ -5238,7 +5238,576 @@ function closeOrderDetailsModal() {
 
     }
 
+// =========================================
+// PRODUCT IMAGE MANAGEMENT
+// =========================================
 
+let currentImageProductId = null;
+
+
+// OPEN PRODUCT IMAGES MODAL
+async function openProductImagesModal(
+  productId,
+  productName
+) {
+
+  currentImageProductId =
+    productId;
+
+
+  document
+    .getElementById(
+      "productImagesProductName"
+    )
+    .textContent =
+      productName;
+
+
+  document
+    .getElementById(
+      "productImagesModal"
+    )
+    .classList.add(
+      "show"
+    );
+
+
+  // Reset form
+  document
+    .getElementById(
+      "productImageForm"
+    )
+    .reset();
+
+
+  document
+    .getElementById(
+      "productImageSortOrder"
+    )
+    .value =
+      "1";
+
+
+  document
+    .getElementById(
+      "productImageFormMessage"
+    )
+    .className =
+      "form-message";
+
+
+  document
+    .getElementById(
+      "productImageFormMessage"
+    )
+    .textContent =
+      "";
+
+
+  await loadProductImages(
+    productId
+  );
+
+}
+
+
+// LOAD PRODUCT IMAGES
+async function loadProductImages(
+  productId
+) {
+
+  const grid =
+    document.getElementById(
+      "productImagesGrid"
+    );
+
+
+  grid.innerHTML = `
+
+    <div
+      class="loading"
+      style="grid-column:1/-1;"
+    >
+      Loading images...
+    </div>
+
+  `;
+
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/admin/products/${productId}/images`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load product images."
+      );
+
+    }
+
+
+    const images =
+      data.images || [];
+
+
+    if (
+      images.length === 0
+    ) {
+
+      grid.innerHTML = `
+
+        <div
+          class="empty"
+          style="grid-column:1/-1;"
+        >
+
+          No images found.
+
+          <br>
+
+          Add your first product image below.
+
+        </div>
+
+      `;
+
+      return;
+
+    }
+
+
+    grid.innerHTML =
+      images
+        .map(
+          image => `
+
+            <div
+              style="
+                border:1px solid #e5e7eb;
+                border-radius:10px;
+                padding:10px;
+                background:#fafafa;
+              "
+            >
+
+              <div
+                style="
+                  position:relative;
+                "
+              >
+
+                <img
+                  src="${escapeHtml(
+                    image.image_url
+                  )}"
+                  alt="Product image"
+                  style="
+                    width:100%;
+                    height:170px;
+                    object-fit:cover;
+                    border-radius:7px;
+                    background:#f1f3f5;
+                    display:block;
+                  "
+                >
+
+                ${
+                  Number(image.is_main) === 1
+                    ? `
+                      <span
+                        style="
+                          position:absolute;
+                          top:8px;
+                          left:8px;
+                          background:#2d9f6f;
+                          color:white;
+                          padding:5px 8px;
+                          border-radius:5px;
+                          font-size:11px;
+                          font-weight:600;
+                        "
+                      >
+                        MAIN
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              <div
+                style="
+                  margin-top:10px;
+                  font-size:12px;
+                  color:#777;
+                "
+              >
+
+                Display Order:
+                ${Number(
+                  image.sort_order || 0
+                )}
+
+              </div>
+
+
+              <button
+                type="button"
+                class="action-button delete-button"
+                style="
+                  margin-top:8px;
+                  width:100%;
+                "
+                onclick="deleteProductImage(
+                  ${Number(image.id)}
+                )"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          `
+        )
+        .join("");
+
+
+  } catch (error) {
+
+    console.error(
+      "Load product images error:",
+      error
+    );
+
+
+    grid.innerHTML = `
+
+      <div
+        class="form-message error"
+        style="
+          grid-column:1/-1;
+        "
+      >
+
+        ${escapeHtml(
+          error.message ||
+          "Failed to load product images."
+        )}
+
+      </div>
+
+    `;
+
+  }
+
+}
+
+
+// ADD PRODUCT IMAGE
+async function addProductImage(
+  event
+) {
+
+  event.preventDefault();
+
+
+  if (
+    !currentImageProductId
+  ) {
+
+    return;
+
+  }
+
+
+  const imageUrl =
+    document
+      .getElementById(
+        "productImageUrl"
+      )
+      .value
+      .trim();
+
+
+  const sortOrder =
+    Number(
+      document
+        .getElementById(
+          "productImageSortOrder"
+        )
+        .value
+    );
+
+
+  const isMain =
+    document
+      .getElementById(
+        "productImageIsMain"
+      )
+      .checked;
+
+
+  const message =
+    document.getElementById(
+      "productImageFormMessage"
+    );
+
+
+  const button =
+    document.getElementById(
+      "addProductImageButton"
+    );
+
+
+  if (
+    !imageUrl
+  ) {
+
+    message.className =
+      "form-message error";
+
+    message.textContent =
+      "Please enter an image URL.";
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isInteger(sortOrder) ||
+    sortOrder < 1
+  ) {
+
+    message.className =
+      "form-message error";
+
+    message.textContent =
+      "Display order must be a positive integer.";
+
+    return;
+
+  }
+
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    "Adding...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/admin/products/${currentImageProductId}/images`,
+        {
+          method: "POST",
+
+          credentials: "include",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              image_url:
+                imageUrl,
+
+              sort_order:
+                sortOrder,
+
+              is_main:
+                isMain
+
+            })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to add product image."
+      );
+
+    }
+
+
+    message.className =
+      "form-message success";
+
+    message.textContent =
+      "Product image added successfully.";
+
+
+    document
+      .getElementById(
+        "productImageForm"
+      )
+      .reset();
+
+
+    document
+      .getElementById(
+        "productImageSortOrder"
+      )
+      .value =
+        "1";
+
+
+    await loadProductImages(
+      currentImageProductId
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Add product image error:",
+      error
+    );
+
+
+    message.className =
+      "form-message error";
+
+    message.textContent =
+      error.message ||
+      "Failed to add product image.";
+
+
+  } finally {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      "Add Image";
+
+  }
+
+}
+
+
+// DELETE PRODUCT IMAGE
+async function deleteProductImage(
+  imageId
+) {
+
+  const confirmed =
+    confirm(
+      "Are you sure you want to delete this image?"
+    );
+
+
+  if (
+    !confirmed
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        `/api/admin/product-images/${imageId}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to delete product image."
+      );
+
+    }
+
+
+    await loadProductImages(
+      currentImageProductId
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Delete product image error:",
+      error
+    );
+
+
+    alert(
+      error.message ||
+      "Failed to delete product image."
+    );
+
+  }
+
+}
+
+
+// CLOSE PRODUCT IMAGES MODAL
+function closeProductImagesModal() {
+
+  document
+    .getElementById(
+      "productImagesModal"
+    )
+    .classList.remove(
+      "show"
+    );
+
+
+  currentImageProductId =
+    null;
+
+}
 
     // =========================================
     // LOGOUT
@@ -5292,6 +5861,15 @@ function closeOrderDetailsModal() {
         "submit",
         saveVariant
       );
+
+    document
+  .getElementById(
+    "productImageForm"
+  )
+  .addEventListener(
+    "submit",
+    addProductImage
+  );
 
 
 
