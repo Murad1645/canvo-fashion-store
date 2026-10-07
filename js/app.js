@@ -1085,7 +1085,7 @@ function findMatchingVariant() {
 
 
 // ========================================================
-// UPDATE ADD TO CART BUTTON
+// UPDATE DETAIL STOCK
 // ========================================================
 
 function updateDetailStock() {
@@ -1185,6 +1185,11 @@ function updateDetailStock() {
 
 }
 
+
+// ========================================================
+// UPDATE ADD TO CART BUTTON
+// ========================================================
+
 function updateDetailAddButton() {
 
   const button =
@@ -1204,8 +1209,6 @@ function updateDetailAddButton() {
   if (buyNowButton) {
     buyNowButton.disabled = true;
   }
-
-  button.disabled = true;
 
   // No variants
   if (!selectedProductVariants.length) {
@@ -1240,54 +1243,61 @@ function updateDetailAddButton() {
     return;
   }
 
-// Variant not found
-if (!selectedVariant) {
+  // Variant not found
+  if (!selectedVariant) {
 
-  button.textContent =
-    "UNAVAILABLE";
-
-  if (buyNowButton) {
-    buyNowButton.disabled = true;
-    buyNowButton.textContent =
+    button.textContent =
       "UNAVAILABLE";
+
+    if (buyNowButton) {
+
+      buyNowButton.disabled = true;
+
+      buyNowButton.textContent =
+        "UNAVAILABLE";
+
+    }
+
+    return;
   }
 
-  return;
-}
+  const stock =
+    Number(
+      selectedVariant.stock_quantity
+    );
 
-const stock =
-  Number(
-    selectedVariant.stock_quantity
-  );
+  if (stock <= 0) {
 
-if (stock <= 0) {
+    button.disabled = true;
 
-  button.disabled = true;
+    button.textContent =
+      "OUT OF STOCK";
+
+    if (buyNowButton) {
+
+      buyNowButton.disabled = true;
+
+      buyNowButton.textContent =
+        "OUT OF STOCK";
+
+    }
+
+    return;
+  }
+
+  button.disabled = false;
 
   button.textContent =
-    "OUT OF STOCK";
+    "ADD TO CART";
 
   if (buyNowButton) {
-    buyNowButton.disabled = true;
+
+    buyNowButton.disabled = false;
+
     buyNowButton.textContent =
-      "OUT OF STOCK";
+      "BUY NOW";
+
   }
-
-  return;
-}
-
-button.disabled = false;
-
-button.textContent =
-  "ADD TO CART";
-
-if (buyNowButton) {
-
-  buyNowButton.disabled = false;
-
-  buyNowButton.textContent =
-    "BUY NOW";
-}
 
 }
 
@@ -1408,6 +1418,7 @@ function addSelectedVariantToCart() {
   if (!selectedProduct) {
 
     return;
+
   }
 
   if (!selectedVariant) {
@@ -1775,115 +1786,66 @@ function renderCart() {
         total +=
           price * quantity;
 
-       return `
-  <div class="cart-item">
+        return `
+          <div class="cart-item">
 
-    <strong class="cart-item-name">
-      ${escapeHtml(item.name || "")}
-    </strong>
+            <strong class="cart-item-name">
+              ${escapeHtml(item.name || "")}
+            </strong>
 
-    <div class="cart-item-body">
+            <div class="cart-item-body">
 
-      <img
-        src="${escapeHtml(item.image || "")}"
-        alt="${escapeHtml(item.name || "")}"
-      >
+              <img
+                src="${escapeHtml(item.image || "")}"
+                alt="${escapeHtml(item.name || "")}"
+              >
 
-      <div class="cart-item-info">
+              <div class="cart-item-info">
 
-        ${
-          item.size
-            ? `<small>Size: ${escapeHtml(item.size)}</small>`
-            : ""
-        }
+                ${
+                  item.size
+                    ? `<small>Size: ${escapeHtml(item.size)}</small>`
+                    : ""
+                }
 
-        ${
-          item.color
-            ? `<small>Color: ${escapeHtml(item.color)}</small>`
-            : ""
-        }
+                ${
+                  item.color
+                    ? `<small>Color: ${escapeHtml(item.color)}</small>`
+                    : ""
+                }
 
-        <small>
-          ৳${formatPrice(price)}
-        </small>
+                <small>
+                  ৳${formatPrice(price)}
+                </small>
 
-        <div class="cart-item-actions">
+                <div class="cart-item-actions">
 
-          <button
-            type="button"
-            onclick="changeCartQuantity(${index}, -1)"
-          >
-            −
-          </button>
+                  <button
+                    type="button"
+                    onclick="changeCartQuantity(${index}, -1)"
+                  >
+                    −
+                  </button>
 
-          <span>
-            ${quantity}
-          </span>
+                  <span>
+                    ${quantity}
+                  </span>
 
-          <button
-            type="button"
-            onclick="changeCartQuantity(${index}, 1)"
-          >
-            +
-          </button>
+                  <button
+                    type="button"
+                    onclick="changeCartQuantity(${index}, 1)"
+                  >
+                    +
+                  </button>
 
-          <button
-            type="button"
-            onclick="removeFromCart(${index})"
-          >
-            Remove
-          </button>
+                  <button
+                    type="button"
+                    onclick="removeFromCart(${index})"
+                  >
+                    Remove
+                  </button>
 
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-`;
-              ${
-                item.size
-                  ? `<small>Size: ${escapeHtml(item.size)}</small>`
-                  : ""
-              }
-
-              ${
-                item.color
-                  ? `<small>Color: ${escapeHtml(item.color)}</small>`
-                  : ""
-              }
-
-              <small>
-                ৳${formatPrice(price)}
-              </small>
-
-              <div class="cart-item-actions">
-
-                <button
-                  type="button"
-                  onclick="changeCartQuantity(${index}, -1)"
-                >
-                  −
-                </button>
-
-                <span>
-                  ${quantity}
-                </span>
-
-                <button
-                  type="button"
-                  onclick="changeCartQuantity(${index}, 1)"
-                >
-                  +
-                </button>
-
-                <button
-                  type="button"
-                  onclick="removeFromCart(${index})"
-                >
-                  Remove
-                </button>
+                </div>
 
               </div>
 
@@ -2260,6 +2222,7 @@ document.addEventListener(
   }
 );
 
+
 // ========================================================
 // HEADER SEARCH
 // ========================================================
@@ -2370,6 +2333,7 @@ function openWishlist() {
 
 }
 
+
 // ========================================================
 // BUY NOW
 // ========================================================
@@ -2454,4 +2418,5 @@ function buyNowSelectedVariant() {
   // Go to checkout
   window.location.href =
     "checkout.html?buyNow=1";
+
 }
