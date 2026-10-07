@@ -1454,14 +1454,14 @@ localStorage.setItem(
       );
 
 
-      /*
-       * Current CANVO rule:
-       * Orders ৳2500 or more = FREE DELIVERY
-       * Below ৳2500 = ৳60
-       */
+/*
+ * Current CANVO rule:
+ * Orders ৳5000 or more = FREE DELIVERY
+ * Below ৳5000 = ৳60
+ */
 
       const shipping =
-        subtotal >= 2500 || subtotal === 0
+        subtotal >= 5000 || subtotal === 0
           ? 0
           : 60;
 
