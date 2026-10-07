@@ -1740,21 +1740,33 @@ function renderCart() {
       "cartTotal"
     );
 
+  // ------------------------------------------------------
+  // Cart container not available
+  // ------------------------------------------------------
+
   if (!cartItems) {
 
     updateCount();
 
     return;
+
   }
+
+
+  // ------------------------------------------------------
+  // Empty cart
+  // ------------------------------------------------------
 
   if (!cart.length) {
 
     cartItems.innerHTML = `
-      <div style="
-        text-align:center;
-        padding:30px 10px;
-        color:#777;
-      ">
+      <div
+        style="
+          text-align: center;
+          padding: 30px 10px;
+          color: #777;
+        "
+      >
         Your cart is empty.
       </div>
     `;
@@ -1769,78 +1781,144 @@ function renderCart() {
     updateCount();
 
     return;
+
   }
 
+
+  // ------------------------------------------------------
+  // Calculate total
+  // ------------------------------------------------------
+
   let total = 0;
+
+
+  // ------------------------------------------------------
+  // Render cart items
+  // ------------------------------------------------------
 
   cartItems.innerHTML =
     cart.map(
       (item, index) => {
 
         const quantity =
-          Number(item.quantity || 0);
+          Number(
+            item.quantity || 0
+          );
 
         const price =
-          Number(item.price || 0);
+          Number(
+            item.price || 0
+          );
 
         total +=
           price * quantity;
 
+
         return `
           <div class="cart-item">
 
+            <!-- PRODUCT NAME -->
             <strong class="cart-item-name">
-              ${escapeHtml(item.name || "")}
+              ${escapeHtml(
+                item.name || ""
+              )}
             </strong>
 
+
+            <!-- IMAGE + DETAILS -->
             <div class="cart-item-body">
 
               <img
-                src="${escapeHtml(item.image || "")}"
-                alt="${escapeHtml(item.name || "")}"
+                src="${escapeHtml(
+                  item.image || ""
+                )}"
+                alt="${escapeHtml(
+                  item.name || ""
+                )}"
               >
 
+
+              <!-- PRODUCT DETAILS -->
               <div class="cart-item-info">
 
                 ${
                   item.size
-                    ? `<small>Size: ${escapeHtml(item.size)}</small>`
+                    ? `
+                      <div class="cart-detail">
+                        Size:
+                        ${escapeHtml(
+                          item.size
+                        )}
+                      </div>
+                    `
                     : ""
                 }
+
 
                 ${
                   item.color
-                    ? `<small>Color: ${escapeHtml(item.color)}</small>`
+                    ? `
+                      <div class="cart-detail">
+                        Color:
+                        ${escapeHtml(
+                          item.color
+                        )}
+                      </div>
+                    `
                     : ""
                 }
 
-                <small>
-                  ৳${formatPrice(price)}
-                </small>
 
-                <div class="cart-item-actions">
+                <div class="cart-detail">
+                  ৳${formatPrice(price)}
+                </div>
+
+
+                <!-- QUANTITY + REMOVE -->
+                <div
+                  class="cart-item-actions"
+                >
 
                   <button
                     type="button"
-                    onclick="changeCartQuantity(${index}, -1)"
+                    aria-label="Decrease quantity"
+                    onclick="
+                      changeCartQuantity(
+                        ${index},
+                        -1
+                      )
+                    "
                   >
                     −
                   </button>
+
 
                   <span>
                     ${quantity}
                   </span>
 
+
                   <button
                     type="button"
-                    onclick="changeCartQuantity(${index}, 1)"
+                    aria-label="Increase quantity"
+                    onclick="
+                      changeCartQuantity(
+                        ${index},
+                        1
+                      )
+                    "
                   >
                     +
                   </button>
 
+
                   <button
                     type="button"
-                    onclick="removeFromCart(${index})"
+                    onclick="
+                      removeFromCart(
+                        ${index}
+                      )
+                    "
                   >
                     Remove
                   </button>
@@ -1857,12 +1935,22 @@ function renderCart() {
       }
     ).join("");
 
+
+  // ------------------------------------------------------
+  // Update cart total
+  // ------------------------------------------------------
+
   if (cartTotal) {
 
     cartTotal.textContent =
       `৳${formatPrice(total)}`;
 
   }
+
+
+  // ------------------------------------------------------
+  // Update cart count
+  // ------------------------------------------------------
 
   updateCount();
 
@@ -1901,6 +1989,8 @@ function changeCartQuantity(
 
   saveCart(cart);
 
+  renderCart();
+
   updateCount();
 
 }
@@ -1921,6 +2011,8 @@ function removeFromCart(index) {
 
   saveCart(cart);
 
+  renderCart();
+
   updateCount();
 
   showToast(
@@ -1928,7 +2020,6 @@ function removeFromCart(index) {
   );
 
 }
-
 
 // ========================================================
 // OPEN CART
