@@ -1021,7 +1021,61 @@
 
       <!-- Payment -->
 
+      <!-- Partial Payment -->
+
+      <div class="partial-payment">
+
+        <strong>
+          Set Partial Payment Amount For Order
+        </strong>
+
+        <div class="partial-input">
+
+          <input
+            id="partialPayment"
+            type="number"
+            min="0"
+            value="500"
+          >
+
+          <span>
+            ৳
+          </span>
+
+        </div>
+
+        <div class="payment-note">
+          Min: ৳500 | Max:
+          <span id="maxPayment">
+            ৳0
+          </span>
+        </div>
+
+      </div>
+
+
+      <!-- Payment -->
+
       <div class="payment-method">
+
+        <!-- Cash on Delivery -->
+
+        <label class="payment-radio">
+
+          <input
+            type="radio"
+            name="payment"
+            value="cod"
+          >
+
+          <span>
+            Cash on Delivery
+          </span>
+
+        </label>
+
+
+        <!-- Online Payment -->
 
         <label class="payment-radio">
 
@@ -1033,11 +1087,13 @@
           >
 
           <span>
-            Online Pay
+            Online Payment
           </span>
 
         </label>
 
+
+        <!-- Online Payment Logos -->
 
         <div class="payment-logos">
 
@@ -1047,14 +1103,6 @@
 
           <span class="payment-logo nagad">
             Nagad
-          </span>
-
-          <span class="payment-logo">
-            TapTap Send
-          </span>
-
-          <span class="payment-logo">
-            AMEX
           </span>
 
           <span class="payment-logo">
@@ -1086,7 +1134,7 @@
           </a>
           and
           <a href="#">
-            Terms & Conditions
+            Terms &amp; Conditions
           </a>
         </span>
 
@@ -1712,9 +1760,10 @@ const partialPayment =
 
               partialPayment,
 
-              paymentMethod:
-                "online"
-
+             paymentMethod:
+  document.querySelector(
+    'input[name="payment"]:checked'
+  )?.value || "online"
             })
 
         }
