@@ -1141,6 +1141,241 @@ if (
     }
 
     // ========================================================
+// 7. ADMIN SHIPPING SETTINGS
+// ========================================================
+
+// GET SHIPPING SETTINGS
+if (
+  url.pathname ===
+    "/api/admin/settings/shipping" &&
+  request.method === "GET"
+) {
+
+  try {
+
+    const admin =
+      await getAuthenticatedAdmin(
+        request,
+        env
+      );
+
+    if (!admin) {
+
+      return json(
+        {
+          ok: false,
+          error: "Unauthorized."
+        },
+        401
+      );
+
+    }
+
+
+    const settings =
+      await env.DB
+        .prepare(`
+          SELECT
+            free_shipping_threshold,
+            shipping_charge,
+            updated_at
+          FROM store_settings
+          WHERE id = 1
+          LIMIT 1
+        `)
+        .first();
+
+
+    if (!settings) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Shipping settings not found."
+        },
+        404
+      );
+
+    }
+
+
+    return json({
+      ok: true,
+
+      settings: {
+        freeShippingThreshold:
+          Number(
+            settings.free_shipping_threshold
+          ),
+
+        shippingCharge:
+          Number(
+            settings.shipping_charge
+          ),
+
+        updatedAt:
+          settings.updated_at
+      }
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Get shipping settings error:",
+      error
+    );
+
+    return json(
+      {
+        ok: false,
+        error:
+          "Unable to load shipping settings."
+      },
+      500
+    );
+
+  }
+
+}
+
+
+// UPDATE SHIPPING SETTINGS
+if (
+  url.pathname ===
+    "/api/admin/settings/shipping" &&
+  request.method === "PUT"
+) {
+
+  try {
+
+    const admin =
+      await getAuthenticatedAdmin(
+        request,
+        env
+      );
+
+    if (!admin) {
+
+      return json(
+        {
+          ok: false,
+          error: "Unauthorized."
+        },
+        401
+      );
+
+    }
+
+
+    const body =
+      await request.json();
+
+
+    const freeShippingThreshold =
+      Number(
+        body.freeShippingThreshold
+      );
+
+
+    const shippingCharge =
+      Number(
+        body.shippingCharge
+      );
+
+
+    if (
+      !Number.isFinite(
+        freeShippingThreshold
+      ) ||
+      freeShippingThreshold < 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Invalid free shipping threshold."
+        },
+        400
+      );
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        shippingCharge
+      ) ||
+      shippingCharge < 0
+    ) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Invalid shipping charge."
+        },
+        400
+      );
+
+    }
+
+
+    await env.DB
+      .prepare(`
+        UPDATE store_settings
+        SET
+          free_shipping_threshold = ?,
+          shipping_charge = ?,
+          updated_at =
+            CURRENT_TIMESTAMP
+        WHERE id = 1
+      `)
+      .bind(
+        freeShippingThreshold,
+        shippingCharge
+      )
+      .run();
+
+
+    return json({
+      ok: true,
+
+      message:
+        "Shipping settings updated successfully.",
+
+      settings: {
+        freeShippingThreshold:
+          freeShippingThreshold,
+
+        shippingCharge:
+          shippingCharge
+      }
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Update shipping settings error:",
+      error
+    );
+
+    return json(
+      {
+        ok: false,
+        error:
+          "Unable to update shipping settings."
+      },
+      500
+    );
+
+  }
+
+}
+    // ========================================================
     // 7. ADMIN LOGOUT
     // ========================================================
 
