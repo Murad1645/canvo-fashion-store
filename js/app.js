@@ -224,13 +224,27 @@ function renderProducts(list = products) {
 
             <div class="product-price">
 
-              <strong>
-                ৳${formatPrice(product.price)}
-              </strong>
+  <strong>
+    ৳${formatPrice(product.price)}
+  </strong>
 
-              ${oldPrice}
+  ${oldPrice}
 
-            </div>
+  ${
+    product.oldPrice !== null &&
+    Number(product.oldPrice) > Number(product.price)
+      ? `
+        <span class="discount-amount">
+          Save ৳${formatPrice(
+            Number(product.oldPrice) -
+            Number(product.price)
+          )}
+        </span>
+      `
+      : ""
+  }
+
+</div>
 
             <button
               class="add-btn"
