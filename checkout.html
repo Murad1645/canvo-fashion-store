@@ -1166,7 +1166,63 @@
 
     let couponDiscount = 0;
 
+let shippingSettings = {
+  freeShippingThreshold: 2500,
+  shippingCharge: 60
+};
 
+
+// =====================================================
+// LOAD SHIPPING SETTINGS
+// =====================================================
+
+async function loadShippingSettings() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/settings/shipping",
+        {
+          method: "GET"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load shipping settings."
+      );
+
+    }
+
+
+    shippingSettings =
+      data.settings || {
+        freeShippingThreshold: 2500,
+        shippingCharge: 60
+      };
+
+
+  } catch (error) {
+
+    console.error(
+      "Shipping settings error:",
+      error
+    );
+
+  }
+
+}
     /* =====================================================
        LOAD CART
     ===================================================== */
@@ -1460,10 +1516,18 @@ localStorage.setItem(
  * Below ৳5000 = ৳60
  */
 
-      const shipping =
-        subtotal >= 5000 || subtotal === 0
-          ? 0
-          : 60;
+const shipping =
+  subtotal === 0
+    ? 0
+    : subtotal >=
+        Number(
+          shippingSettings.freeShippingThreshold
+        )
+      ? 0
+      : Number(
+          shippingSettings.shippingCharge
+        );
+      
 
 
       const total =
@@ -1888,10 +1952,16 @@ const partialPayment =
        START
     ===================================================== */
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      loadCheckoutCart
-    );
+document.addEventListener(
+  "DOMContentLoaded",
+  async function () {
+
+    await loadShippingSettings();
+
+    loadCheckoutCart();
+
+  }
+);
 
   </script>
 
