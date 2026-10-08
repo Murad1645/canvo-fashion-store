@@ -1139,7 +1139,86 @@ if (
         );
       }
     }
+// ========================================================
+// PUBLIC SHIPPING SETTINGS
+// ========================================================
 
+if (
+  url.pathname ===
+    "/api/settings/shipping" &&
+  request.method === "GET"
+) {
+
+  try {
+
+    const settings =
+      await env.DB
+        .prepare(`
+          SELECT
+            free_shipping_threshold,
+            shipping_charge
+          FROM store_settings
+          WHERE id = 1
+          LIMIT 1
+        `)
+        .first();
+
+
+    if (!settings) {
+
+      return json(
+        {
+          ok: false,
+          error:
+            "Shipping settings not found."
+        },
+        404
+      );
+
+    }
+
+
+    return json({
+
+      ok: true,
+
+      settings: {
+
+        freeShippingThreshold:
+          Number(
+            settings.free_shipping_threshold
+          ),
+
+        shippingCharge:
+          Number(
+            settings.shipping_charge
+          )
+
+      }
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Public shipping settings error:",
+      error
+    );
+
+
+    return json(
+      {
+        ok: false,
+        error:
+          "Unable to load shipping settings."
+      },
+      500
+    );
+
+  }
+
+}
     // ========================================================
 // 7. ADMIN SHIPPING SETTINGS
 // ========================================================
