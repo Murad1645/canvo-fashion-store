@@ -1046,6 +1046,188 @@
 
     </section>
 
+    <!-- =========================================
+     SETTINGS
+     ========================================= -->
+
+<section
+  class="content-card"
+  id="settingsSection"
+  style="display:none;"
+>
+
+  <div class="content-header">
+
+    <div>
+
+      <h3>Settings</h3>
+
+      <p
+        style="
+          margin:5px 0 0;
+          color:#777;
+          font-size:13px;
+        "
+      >
+        Manage store settings
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <!-- SHIPPING SETTINGS -->
+
+  <div
+    style="
+      max-width:700px;
+      margin-top:25px;
+    "
+  >
+
+    <h4
+      style="
+        margin-bottom:8px;
+        font-size:18px;
+      "
+    >
+      Shipping Settings
+    </h4>
+
+    <p
+      style="
+        margin-bottom:25px;
+        color:#777;
+        font-size:13px;
+      "
+    >
+      Configure your standard shipping charge
+      and free shipping threshold.
+    </p>
+
+
+    <!-- FREE SHIPPING THRESHOLD -->
+
+    <div
+      style="
+        margin-bottom:20px;
+      "
+    >
+
+      <label
+        for="freeShippingThreshold"
+        style="
+          display:block;
+          margin-bottom:8px;
+          font-weight:600;
+        "
+      >
+        Free Shipping Threshold
+      </label>
+
+      <input
+        type="number"
+        id="freeShippingThreshold"
+        min="0"
+        step="1"
+        placeholder="2500"
+        style="
+          width:100%;
+          max-width:500px;
+          padding:12px;
+          border:1px solid #ddd;
+          border-radius:6px;
+          font-size:14px;
+        "
+      >
+
+      <small
+        style="
+          display:block;
+          margin-top:6px;
+          color:#777;
+        "
+      >
+        Orders at or above this amount will get free shipping.
+      </small>
+
+    </div>
+
+
+    <!-- SHIPPING CHARGE -->
+
+    <div
+      style="
+        margin-bottom:25px;
+      "
+    >
+
+      <label
+        for="shippingCharge"
+        style="
+          display:block;
+          margin-bottom:8px;
+          font-weight:600;
+        "
+      >
+        Standard Shipping Charge
+      </label>
+
+      <input
+        type="number"
+        id="shippingCharge"
+        min="0"
+        step="1"
+        placeholder="60"
+        style="
+          width:100%;
+          max-width:500px;
+          padding:12px;
+          border:1px solid #ddd;
+          border-radius:6px;
+          font-size:14px;
+        "
+      >
+
+      <small
+        style="
+          display:block;
+          margin-top:6px;
+          color:#777;
+        "
+      >
+        This charge will apply to orders below the free shipping threshold.
+      </small>
+
+    </div>
+
+
+    <!-- SAVE BUTTON -->
+
+    <button
+      type="button"
+      class="primary-button"
+      onclick="saveShippingSettings()"
+    >
+      Save Changes
+    </button>
+
+
+    <!-- MESSAGE -->
+
+    <div
+      id="shippingSettingsMessage"
+      style="
+        margin-top:15px;
+        font-size:14px;
+        display:none;
+      "
+    ></div>
+
+  </div>
+
+</section>
   </main>
 
 
@@ -2367,20 +2549,252 @@
 
     }
 
+// =========================================
+// SHIPPING SETTINGS
+// =========================================
 
+async function loadShippingSettings() {
+
+  const thresholdInput =
+    document.getElementById(
+      "freeShippingThreshold"
+    );
+
+  const chargeInput =
+    document.getElementById(
+      "shippingCharge"
+    );
+
+  if (
+    !thresholdInput ||
+    !chargeInput
+  ) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/settings/shipping",
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to load shipping settings."
+      );
+
+    }
+
+
+    thresholdInput.value =
+      data.settings
+        .freeShippingThreshold;
+
+
+    chargeInput.value =
+      data.settings
+        .shippingCharge;
+
+
+  } catch (error) {
+
+    console.error(
+      "Shipping settings error:",
+      error
+    );
+
+  }
+
+}
+
+  // =========================================
+// SAVE SHIPPING SETTINGS
+// =========================================
+
+async function saveShippingSettings() {
+
+  const thresholdInput =
+    document.getElementById(
+      "freeShippingThreshold"
+    );
+
+  const chargeInput =
+    document.getElementById(
+      "shippingCharge"
+    );
+
+  const message =
+    document.getElementById(
+      "shippingSettingsMessage"
+    );
+
+
+  if (
+    !thresholdInput ||
+    !chargeInput ||
+    !message
+  ) {
+    return;
+  }
+
+
+  const freeShippingThreshold =
+    Number(
+      thresholdInput.value
+    );
+
+  const shippingCharge =
+    Number(
+      chargeInput.value
+    );
+
+
+  if (
+    !Number.isFinite(
+      freeShippingThreshold
+    ) ||
+    freeShippingThreshold < 0
+  ) {
+
+    message.textContent =
+      "Please enter a valid free shipping threshold.";
+
+    message.style.color =
+      "#dc3545";
+
+    message.style.display =
+      "block";
+
+    return;
+
+  }
+
+
+  if (
+    !Number.isFinite(
+      shippingCharge
+    ) ||
+    shippingCharge < 0
+  ) {
+
+    message.textContent =
+      "Please enter a valid shipping charge.";
+
+    message.style.color =
+      "#dc3545";
+
+    message.style.display =
+      "block";
+
+    return;
+
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/admin/settings/shipping",
+        {
+          method: "PUT",
+
+          credentials: "include",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            freeShippingThreshold:
+              freeShippingThreshold,
+
+            shippingCharge:
+              shippingCharge
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Failed to save shipping settings."
+      );
+
+    }
+
+
+    message.textContent =
+      "Shipping settings saved successfully.";
+
+    message.style.color =
+      "#198754";
+
+    message.style.display =
+      "block";
+
+
+  } catch (error) {
+
+    console.error(
+      "Save shipping settings error:",
+      error
+    );
+
+
+    message.textContent =
+      error.message ||
+      "Unable to save shipping settings.";
+
+    message.style.color =
+      "#dc3545";
+
+    message.style.display =
+      "block";
+
+  }
+
+}
 // =========================================
 // NAVIGATION
 // =========================================
 
 function showSection(section) {
 
-  const sections = [
-    "dashboard",
-    "products",
-    "orders",
-    "customers",
-    "stock"
-  ];
+const sections = [
+  "dashboard",
+  "products",
+  "orders",
+  "customers",
+  "stock",
+  "settings"
+];
 
   // Hide all sections
   sections.forEach(name => {
@@ -2448,6 +2862,10 @@ function showSection(section) {
 
 if (section === "orders") {
   loadOrders();
+}
+
+if (section === "settings") {
+  loadShippingSettings();
 }
 
 if (section === "customers") {
