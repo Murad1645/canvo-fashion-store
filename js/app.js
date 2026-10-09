@@ -1522,6 +1522,11 @@ function addSelectedVariantToCart() {
       price:
         Number(selectedProduct.price),
 
+        oldPrice:
+    selectedProduct.oldPrice !== null
+      ? Number(selectedProduct.oldPrice)
+      : null,
+
       image:
         selectedProduct.image,
 
