@@ -28,9 +28,12 @@
        TOP BAR
   ====================================================== -->
 
-  <div class="topbar">
-    FREE DELIVERY ON ORDERS OVER ৳2,500
-  </div>
+<div
+  class="topbar"
+  id="shippingBanner"
+>
+  FREE DELIVERY ON ORDERS OVER ৳2,500
+</div>
 
 
   <!-- =====================================================
@@ -977,5 +980,59 @@
   <script src="js/products.js"></script>
   <script src="js/app.js"></script>
 
+async function loadShippingBanner() {
+
+  const banner =
+    document.getElementById(
+      "shippingBanner"
+    );
+
+  if (!banner) {
+    return;
+  }
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/settings/shipping"
+      );
+
+    const data =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      return;
+    }
+
+    const threshold =
+      Number(
+        data.settings
+          .freeShippingThreshold
+      );
+
+    banner.textContent =
+      `FREE DELIVERY ON ORDERS OVER ৳${threshold.toLocaleString("en-BD")}`;
+
+  } catch (error) {
+
+    console.error(
+      "Shipping banner error:",
+      error
+    );
+
+  }
+
+}
+
+
+document.addEventListener(
+  "DOMContentLoaded",
+  loadShippingBanner
+);
+          
 </body>
 </html>
