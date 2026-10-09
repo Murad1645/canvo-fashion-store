@@ -1510,6 +1510,36 @@ localStorage.setItem(
       );
 
 
+      let productDiscount = 0;
+
+checkoutCart.forEach(
+  item => {
+
+    const oldPrice =
+      Number(item.oldPrice || 0);
+
+    const currentPrice =
+      Number(item.price || 0);
+
+    const quantity =
+      Number(item.quantity || 1);
+
+    if (
+      oldPrice > currentPrice
+    ) {
+
+      productDiscount +=
+        (
+          oldPrice -
+          currentPrice
+        ) *
+        quantity;
+
+    }
+
+  }
+);
+      
 /*
  * Current CANVO rule:
  * Orders ৳5000 or more = FREE DELIVERY
@@ -1530,13 +1560,9 @@ const shipping =
       
 
 
-      const total =
-        Math.max(
-          0,
-          subtotal +
-          shipping -
-          couponDiscount
-        );
+const total =
+  subtotal +
+  shipping;
 
 
       document.getElementById(
@@ -1551,10 +1577,10 @@ const shipping =
         money(shipping);
 
 
-      document.getElementById(
-        "discount"
-      ).textContent =
-        money(couponDiscount);
+document.getElementById(
+  "discount"
+).textContent =
+  money(productDiscount);
 
 
       document.getElementById(
