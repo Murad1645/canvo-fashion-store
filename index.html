@@ -980,6 +980,8 @@
   <script src="js/products.js"></script>
   <script src="js/app.js"></script>
 
+<script>
+
 async function loadShippingBanner() {
 
   const banner =
@@ -1015,7 +1017,7 @@ async function loadShippingBanner() {
       );
 
     banner.textContent =
-      `FREE DELIVERY ON ORDERS OVER ৳${threshold.toLocaleString("en-BD")}`;
+      `FREE DELIVERY ON ORDERS ৳${threshold.toLocaleString("en-BD")} OR MORE`;
 
   } catch (error) {
 
@@ -1033,6 +1035,8 @@ document.addEventListener(
   "DOMContentLoaded",
   loadShippingBanner
 );
+
+</script>
           
 </body>
 </html>

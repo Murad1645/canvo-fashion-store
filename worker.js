@@ -725,13 +725,56 @@ if (
 
 
     // ----------------------------------------------------
-    // SHIPPING
+    // SHIPPING — read the current Admin Settings from D1
     // ----------------------------------------------------
 
+    const shippingSettings =
+      await env.DB
+        .prepare(`
+          SELECT
+            free_shipping_threshold,
+            shipping_charge
+          FROM store_settings
+          WHERE id = 1
+          LIMIT 1
+        `)
+        .first();
+
+    if (!shippingSettings) {
+      return json(
+        {
+          ok: false,
+          error: "Shipping settings are not configured."
+        },
+        500
+      );
+    }
+
+    const freeShippingThreshold =
+      Number(shippingSettings.free_shipping_threshold);
+
+    const standardShippingCharge =
+      Number(shippingSettings.shipping_charge);
+
+    if (
+      !Number.isFinite(freeShippingThreshold) ||
+      freeShippingThreshold < 0 ||
+      !Number.isFinite(standardShippingCharge) ||
+      standardShippingCharge < 0
+    ) {
+      return json(
+        {
+          ok: false,
+          error: "Shipping settings contain invalid values."
+        },
+        500
+      );
+    }
+
     const shippingFee =
-      subtotal >= 2500
+      subtotal === 0 || subtotal >= freeShippingThreshold
         ? 0
-        : 60;
+        : standardShippingCharge;
 
 
     // ----------------------------------------------------

@@ -1227,7 +1227,7 @@ async function loadShippingSettings() {
        LOAD CART
     ===================================================== */
 
-  function loadCheckoutCart() {
+  async function loadCheckoutCart() {
 
   try {
 
@@ -1248,6 +1248,49 @@ async function loadShippingSettings() {
       JSON.parse(
         localStorage.getItem(storageKey)
       ) || [];
+
+    // Older saved cart entries may not contain oldPrice.
+    // Recover it from the current product API so the displayed
+    // savings remain correct after a product was already added.
+    if (checkoutCart.length) {
+      try {
+        const response = await fetch("/api/products", {
+          method: "GET"
+        });
+        const data = await response.json();
+
+        if (response.ok && data.ok && Array.isArray(data.products)) {
+          const productsById = new Map(
+            data.products.map(product => [
+              Number(product.id),
+              product
+            ])
+          );
+
+          checkoutCart = checkoutCart.map(item => {
+            const product = productsById.get(Number(item.productId));
+            if (!product) return item;
+
+            const oldPrice =
+              product.old_price === null || product.old_price === undefined || product.old_price === ""
+                ? null
+                : Number(product.old_price);
+
+            return {
+              ...item,
+              oldPrice:
+                Number.isFinite(oldPrice) && oldPrice !== null
+                  ? oldPrice
+                  : null
+            };
+          });
+
+          localStorage.setItem(storageKey, JSON.stringify(checkoutCart));
+        }
+      } catch (productError) {
+        console.error("Unable to refresh product discount information:", productError);
+      }
+    }
 
   } catch (error) {
 
@@ -1540,12 +1583,7 @@ checkoutCart.forEach(
   }
 );
       
-/*
- * Current CANVO rule:
- * Orders ৳5000 or more = FREE DELIVERY
- * Below ৳5000 = ৳60
- */
-
+// Use the shipping settings loaded from the public Worker API.
 const shipping =
   subtotal === 0
     ? 0
