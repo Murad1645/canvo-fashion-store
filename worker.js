@@ -1125,6 +1125,110 @@ if (
 
 
     // ========================================================
+    // ADMIN LOGIN
+    // ========================================================
+
+    if (
+      url.pathname === "/api/admin/login" &&
+      request.method === "POST"
+    ) {
+      try {
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return json(
+            { ok: false, error: "Invalid JSON request body." },
+            400
+          );
+        }
+
+        const email = String(body?.email || "")
+          .trim()
+          .toLowerCase();
+        const password = body?.password;
+
+        if (!email || typeof password !== "string" || !password) {
+          return json(
+            { ok: false, error: "Email and password are required." },
+            400
+          );
+        }
+
+        const admin = await env.DB
+          .prepare(`
+            SELECT id, name, email, password_hash, role, status
+            FROM admins
+            WHERE lower(email) = ?
+            LIMIT 1
+          `)
+          .bind(email)
+          .first();
+
+        // Use the same response for unknown emails and incorrect passwords.
+        if (!admin || admin.status !== "active") {
+          return json(
+            { ok: false, error: "Invalid email or password." },
+            401
+          );
+        }
+
+        const passwordCorrect = await verifyPassword(
+          password,
+          admin.password_hash
+        );
+
+        if (!passwordCorrect) {
+          return json(
+            { ok: false, error: "Invalid email or password." },
+            401
+          );
+        }
+
+        const sessionToken = createSessionToken();
+        const sessionHash = await hashSessionToken(sessionToken);
+        const expiresAt = new Date(
+          Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+        ).toISOString();
+
+        await env.DB
+          .prepare(`
+            INSERT INTO admin_sessions
+              (admin_id, session_token_hash, expires_at)
+            VALUES (?, ?, ?)
+          `)
+          .bind(admin.id, sessionHash, expiresAt)
+          .run();
+
+        const cookie =
+          `${SESSION_COOKIE}=${sessionToken}; ` +
+          "HttpOnly; Secure; SameSite=Lax; Path=/; " +
+          `Max-Age=${SESSION_DAYS * 24 * 60 * 60}`;
+
+        return json(
+          {
+            ok: true,
+            message: "Login successful.",
+            admin: {
+              id: admin.id,
+              name: admin.name,
+              email: admin.email,
+              role: admin.role
+            }
+          },
+          200,
+          { "Set-Cookie": cookie }
+        );
+      } catch (error) {
+        console.error("Admin login error:", error);
+        return json(
+          { ok: false, error: "Unable to process login right now." },
+          500
+        );
+      }
+    }
+
+    // ========================================================
     // 6. ADMIN SESSION CHECK
     // ========================================================
 
