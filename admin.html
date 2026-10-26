@@ -1974,96 +1974,49 @@
         <form id="productImageForm">
 
           <div class="form-group">
+            <label>Choose Image Source *</label>
+            <div style="display:flex;gap:18px;flex-wrap:wrap;padding:12px;border:1px solid #d5dbe3;border-radius:8px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                <input type="radio" name="productImageSource" value="computer" checked>
+                Upload from Computer
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                <input type="radio" name="productImageSource" value="url">
+                Cloudinary Image URL
+              </label>
+            </div>
+          </div>
 
-            <label for="productImageUrl">
-              Image URL *
-            </label>
+          <div class="form-group" id="productImageFileGroup">
+            <label for="productImageFile">Select Image from Computer *</label>
+            <input type="file" id="productImageFile" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp">
+            <small style="display:block;margin-top:6px;color:#777;">JPG, PNG or WebP; maximum 10 MB.</small>
+          </div>
 
-            <input
-              type="url"
-              id="productImageUrl"
-              placeholder="https://example.com/product-image.jpg"
-              required
-            >
-
+          <div class="form-group" id="productImageUrlGroup" style="display:none;">
+            <label for="productImageUrl">Cloudinary Image URL *</label>
+            <input type="url" id="productImageUrl" placeholder="https://res.cloudinary.com/.../image/upload/...">
           </div>
 
           <div class="form-row">
-
             <div class="form-group">
-
-              <label for="productImageSortOrder">
-                Display Order
-              </label>
-
-              <input
-                type="number"
-                id="productImageSortOrder"
-                min="1"
-                step="1"
-                value="1"
-              >
-
+              <label for="productImageSortOrder">Display Order</label>
+              <input type="number" id="productImageSortOrder" min="1" step="1" value="1">
             </div>
-
-            <div
-              class="form-group"
-              style="
-                display:flex;
-                align-items:center;
-                padding-top:25px;
-              "
-            >
-
-              <label
-                style="
-                  display:flex;
-                  align-items:center;
-                  gap:8px;
-                  cursor:pointer;
-                "
-              >
-
-                <input
-                  type="checkbox"
-                  id="productImageIsMain"
-                >
-
-                <span>
-                  Set as Main Image
-                </span>
-
+            <div class="form-group" style="display:flex;align-items:center;padding-top:25px;">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="productImageIsMain">
+                <span>Set as Main Image</span>
               </label>
-
             </div>
-
           </div>
 
-          <div
-            id="productImageFormMessage"
-            class="form-message"
-          ></div>
+          <div id="productImageFormMessage" class="form-message"></div>
 
           <div class="modal-actions">
-
-            <button
-              type="button"
-              class="cancel-button"
-              onclick="closeProductImagesModal()"
-            >
-              Close
-            </button>
-
-            <button
-              type="submit"
-              class="save-button"
-              id="addProductImageButton"
-            >
-              Add Image
-            </button>
-
+            <button type="button" class="cancel-button" onclick="closeProductImagesModal()">Close</button>
+            <button type="submit" class="save-button" id="addProductImageButton">Add Image</button>
           </div>
-
         </form>
 
       </div>
@@ -5931,6 +5884,23 @@ async function loadProductImages(
 }
 
 
+// Toggle between computer upload and Cloudinary URL entry.
+function updateProductImageSourceFields() {
+  const source = document.querySelector('input[name="productImageSource"]:checked')?.value || "computer";
+  const fileGroup = document.getElementById("productImageFileGroup");
+  const urlGroup = document.getElementById("productImageUrlGroup");
+  const fileInput = document.getElementById("productImageFile");
+  const urlInput = document.getElementById("productImageUrl");
+  const useComputer = source === "computer";
+
+  fileGroup.style.display = useComputer ? "block" : "none";
+  urlGroup.style.display = useComputer ? "none" : "block";
+  fileInput.required = useComputer;
+  urlInput.required = !useComputer;
+  if (useComputer) urlInput.value = "";
+  else fileInput.value = "";
+}
+
 // ADD PRODUCT IMAGE
 async function addProductImage(
   event
@@ -5948,13 +5918,9 @@ async function addProductImage(
   }
 
 
-  const imageUrl =
-    document
-      .getElementById(
-        "productImageUrl"
-      )
-      .value
-      .trim();
+  const source = document.querySelector('input[name="productImageSource"]:checked')?.value || "computer";
+  const selectedFile = document.getElementById("productImageFile").files[0];
+  let imageUrl = document.getElementById("productImageUrl").value.trim();
 
 
   const sortOrder =
@@ -5987,18 +5953,38 @@ async function addProductImage(
     );
 
 
-  if (
-    !imageUrl
-  ) {
-
-    message.className =
-      "form-message error";
-
-    message.textContent =
-      "Please enter an image URL.";
-
-    return;
-
+  if (source === "computer") {
+    if (!selectedFile) {
+      message.className = "form-message error";
+      message.textContent = "Please select an image from your computer.";
+      return;
+    }
+    if (!/^image\/(jpeg|png|webp)$/.test(selectedFile.type)) {
+      message.className = "form-message error";
+      message.textContent = "Only JPG, PNG or WebP images are allowed.";
+      return;
+    }
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      message.className = "form-message error";
+      message.textContent = "Image size must be 10 MB or less.";
+      return;
+    }
+  } else {
+    if (!imageUrl) {
+      message.className = "form-message error";
+      message.textContent = "Please enter a Cloudinary image URL.";
+      return;
+    }
+    try {
+      const parsedUrl = new URL(imageUrl);
+      if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "res.cloudinary.com") {
+        throw new Error("Please use a valid Cloudinary HTTPS image URL.");
+      }
+    } catch (error) {
+      message.className = "form-message error";
+      message.textContent = error.message || "Please enter a valid Cloudinary image URL.";
+      return;
+    }
   }
 
 
@@ -6021,11 +6007,33 @@ async function addProductImage(
   button.disabled =
     true;
 
-  button.textContent =
-    "Adding...";
+  button.textContent = source === "computer" ? "Uploading..." : "Adding...";
 
 
   try {
+
+    if (source === "computer") {
+      message.className = "form-message";
+      message.textContent = "Uploading image to Cloudinary...";
+      message.style.display = "block";
+
+      const uploadData = new FormData();
+      uploadData.append("file", selectedFile);
+      uploadData.append("upload_preset", "canvo_product_upload");
+      uploadData.append("folder", "canvo/products");
+
+      const cloudinaryResponse = await fetch(
+        "https://api.cloudinary.com/v1_1/wsu67rkz/image/upload",
+        { method: "POST", body: uploadData }
+      );
+      const cloudinaryResult = await cloudinaryResponse.json();
+      if (!cloudinaryResponse.ok || !cloudinaryResult.secure_url) {
+        throw new Error(cloudinaryResult.error?.message || "Cloudinary upload failed.");
+      }
+      imageUrl = cloudinaryResult.secure_url;
+    }
+
+    button.textContent = "Adding...";
 
     const response =
       await fetch(
@@ -6086,6 +6094,7 @@ async function addProductImage(
         "productImageForm"
       )
       .reset();
+    updateProductImageSourceFields();
 
 
     document
@@ -6280,6 +6289,11 @@ function closeProductImagesModal() {
     "submit",
     addProductImage
   );
+
+    document.querySelectorAll('input[name="productImageSource"]').forEach(input => {
+      input.addEventListener("change", updateProductImageSourceFields);
+    });
+    updateProductImageSourceFields();
 
 
 
