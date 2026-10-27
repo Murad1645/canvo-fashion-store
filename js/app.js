@@ -2101,7 +2101,8 @@ function openCart() {
 
   cart.classList.add("active");
   cart.setAttribute("aria-hidden", "false");
-  document.body.classList.add("cart-open");
+  document.body.classList.remove("cart-open");
+  document.body.style.overflow = "";
   renderCart();
 
   const closeButton = cart.querySelector(".cart-head button");
@@ -2120,6 +2121,7 @@ function closeCart() {
   cart.classList.remove("active");
   cart.setAttribute("aria-hidden", "true");
   document.body.classList.remove("cart-open");
+  document.body.style.overflow = "";
 }
 
 
@@ -2128,47 +2130,39 @@ function closeCart() {
 // ========================================================
 
 function searchProducts() {
+  const input = document.getElementById("searchInput");
+  const results = document.getElementById("searchResults");
+  if (!input || !results) return;
 
-  const input =
-    document.getElementById(
-      "searchInput"
-    );
+  const query = input.value.trim().toLowerCase();
+  const matches = !query
+    ? products.slice(0, 5)
+    : products.filter(product => {
+        const name = String(product.name || "").toLowerCase();
+        const category = String(product.category || "").toLowerCase();
+        const description = String(product.description || "").toLowerCase();
+        return name.includes(query) || category.includes(query) || description.includes(query);
+      }).slice(0, 10);
 
-  if (!input) return;
-
-  const query =
-    input.value
-      .trim()
-      .toLowerCase();
-
-  if (!query) {
-
-    renderProducts();
-
+  if (!matches.length) {
+    results.innerHTML = '<div class="search-empty">No matching products found. Try another name or category.</div>';
     return;
-
   }
 
-  const filtered =
-    products.filter(
-      product =>
-        String(
-          product.name || ""
-        )
-          .toLowerCase()
-          .includes(query) ||
+  results.innerHTML = matches.map(product => `
+    <button type="button" class="search-result-item" onclick="selectSearchResult(${Number(product.id)})">
+      <img src="${escapeHtml(product.image || "")}" alt="${escapeHtml(product.name || "Product")}" loading="lazy" onerror="this.style.visibility='hidden'">
+      <span class="search-result-copy">
+        <span class="search-result-name">${escapeHtml(product.name || "Product")}</span>
+        <span class="search-result-meta">${escapeHtml(product.category || "Fashion")} · ৳${formatPrice(product.price)}</span>
+      </span>
+    </button>
+  `).join("");
+}
 
-        String(
-          product.category || ""
-        )
-          .toLowerCase()
-          .includes(query)
-    );
-
-  renderProducts(
-    filtered
-  );
-
+function selectSearchResult(productId) {
+  closeSearch();
+  goToProduct(Number(productId));
 }
 
 
@@ -2381,12 +2375,10 @@ function openSearch() {
 
   if (!modal) return;
 
-  modal.classList.add(
-    "active"
-  );
-
-  document.body.style.overflow =
-    "hidden";
+  modal.classList.add("active");
+  modal.setAttribute("aria-hidden", "false");
+  // Search is a dropdown, not a full-screen modal; keep the page scrollable.
+  document.body.style.overflow = "";
 
   const input =
     document.getElementById(
@@ -2394,11 +2386,8 @@ function openSearch() {
     );
 
   if (input) {
-
-    setTimeout(() => {
-      input.focus();
-    }, 100);
-
+    searchProducts();
+    setTimeout(() => input.focus({ preventScroll: true }), 50);
   }
 
 }
@@ -2417,12 +2406,10 @@ function closeSearch() {
 
   if (!modal) return;
 
-  modal.classList.remove(
-    "active"
-  );
-
-  document.body.style.overflow =
-    "";
+  modal.classList.remove("active");
+  modal.setAttribute("aria-hidden", "true");
+  // Do not unlock/lock the page here: the cart or another dialog may be active.
+  document.body.style.overflow = "";
 
 }
 
@@ -2588,4 +2575,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", event => {
     if (event.key === "Escape") closeCart();
   });
+});
+
+
+// Close the search dropdown when clicking outside it.
+document.addEventListener("click", event => {
+  const modal = document.getElementById("searchModal");
+  if (!modal || !modal.classList.contains("active")) return;
+  const clickedSearchButton = event.target.closest(".search-action");
+  if (!modal.contains(event.target) && !clickedSearchButton) closeSearch();
 });
