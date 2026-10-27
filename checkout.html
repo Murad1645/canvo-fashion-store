@@ -1227,7 +1227,7 @@ async function loadShippingSettings() {
        LOAD CART
     ===================================================== */
 
-  async function loadCheckoutCart() {
+  function loadCheckoutCart() {
 
   try {
 
@@ -1248,49 +1248,6 @@ async function loadShippingSettings() {
       JSON.parse(
         localStorage.getItem(storageKey)
       ) || [];
-
-    // Older saved cart entries may not contain oldPrice.
-    // Recover it from the current product API so the displayed
-    // savings remain correct after a product was already added.
-    if (checkoutCart.length) {
-      try {
-        const response = await fetch("/api/products", {
-          method: "GET"
-        });
-        const data = await response.json();
-
-        if (response.ok && data.ok && Array.isArray(data.products)) {
-          const productsById = new Map(
-            data.products.map(product => [
-              Number(product.id),
-              product
-            ])
-          );
-
-          checkoutCart = checkoutCart.map(item => {
-            const product = productsById.get(Number(item.productId));
-            if (!product) return item;
-
-            const oldPrice =
-              product.old_price === null || product.old_price === undefined || product.old_price === ""
-                ? null
-                : Number(product.old_price);
-
-            return {
-              ...item,
-              oldPrice:
-                Number.isFinite(oldPrice) && oldPrice !== null
-                  ? oldPrice
-                  : null
-            };
-          });
-
-          localStorage.setItem(storageKey, JSON.stringify(checkoutCart));
-        }
-      } catch (productError) {
-        console.error("Unable to refresh product discount information:", productError);
-      }
-    }
 
   } catch (error) {
 
@@ -1583,7 +1540,12 @@ checkoutCart.forEach(
   }
 );
       
-// Use the shipping settings loaded from the public Worker API.
+/*
+ * Current CANVO rule:
+ * Orders ৳5000 or more = FREE DELIVERY
+ * Below ৳5000 = ৳60
+ */
+
 const shipping =
   subtotal === 0
     ? 0
@@ -1854,6 +1816,7 @@ const partialPayment =
         {
 
           method: "POST",
+          credentials: "same-origin",
 
           headers: {
             "Content-Type":
@@ -1909,6 +1872,11 @@ const partialPayment =
     /*
      * Check API response
      */
+
+    if (response.status === 401 && data.loginRequired) {
+      window.location.href = "login.html?returnTo=" + encodeURIComponent(window.location.pathname.split("/").pop() + window.location.search);
+      return;
+    }
 
     if (
       !response.ok ||
@@ -2019,11 +1987,33 @@ const partialPayment =
 document.addEventListener(
   "DOMContentLoaded",
   async function () {
-
-    await loadShippingSettings();
-
-    loadCheckoutCart();
-
+    try {
+      const sessionResponse = await fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" });
+      if (!sessionResponse.ok) {
+        window.location.href = "login.html?returnTo=" + encodeURIComponent(window.location.pathname.split("/").pop() + window.location.search);
+        return;
+      }
+      const sessionData = await sessionResponse.json();
+      const profileResponse = await fetch("/api/customer/profile", { credentials: "same-origin", cache: "no-store" });
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        const profile = profileData.profile || {};
+        const nameInput = document.getElementById("fullName");
+        const phoneInput = document.getElementById("phone");
+        const districtInput = document.getElementById("district");
+        if (nameInput && profile.name) nameInput.value = profile.name;
+        if (phoneInput && profile.phone) phoneInput.value = profile.phone;
+        if (districtInput && profile.city) {
+          const option = Array.from(districtInput.options).find(o => o.value.toLowerCase() === String(profile.city).toLowerCase());
+          if (option) districtInput.value = option.value;
+        }
+      }
+      await loadShippingSettings();
+      loadCheckoutCart();
+    } catch (error) {
+      console.error("Customer session check failed:", error);
+      window.location.href = "login.html?returnTo=" + encodeURIComponent(window.location.pathname.split("/").pop() + window.location.search);
+    }
   }
 );
 

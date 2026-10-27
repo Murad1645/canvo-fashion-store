@@ -311,6 +311,63 @@ async function getAuthenticatedAdmin(
 }
 
 // ============================================================
+// CUSTOMER AUTHENTICATION
+// ============================================================
+
+const CUSTOMER_SESSION_COOKIE = "canvo_customer_session";
+const CUSTOMER_SESSION_DAYS = 7;
+
+function normalizeCustomerPhone(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("00880")) digits = digits.slice(2);
+  if (digits.startsWith("8801") && digits.length === 13) digits = "0" + digits.slice(3);
+  if (digits.startsWith("880") && digits.length === 13) digits = "0" + digits.slice(3);
+  return digits;
+}
+
+function customerPhoneCandidates(value) {
+  const local = normalizeCustomerPhone(value);
+  if (!local) return [];
+  const international = local.startsWith("0") ? "+88" + local : local;
+  const noPlus = international.replace(/^\+/, "");
+  return [...new Set([local, international, noPlus])];
+}
+
+async function getAuthenticatedCustomer(request, env) {
+  const token = getCookie(request, CUSTOMER_SESSION_COOKIE);
+  if (!token) return null;
+  const tokenHash = await hashSessionToken(token);
+  const session = await env.DB.prepare(`
+    SELECT s.id AS session_id, s.customer_id, s.expires_at,
+           c.name, c.phone, c.address, c.city, c.status AS customer_status,
+           a.status AS account_status
+    FROM customer_sessions s
+    INNER JOIN customer_accounts a ON a.customer_id = s.customer_id
+    INNER JOIN customers c ON c.id = s.customer_id
+    WHERE s.session_token_hash = ?
+    LIMIT 1
+  `).bind(tokenHash).first();
+  if (!session || session.customer_status !== "active" || session.account_status !== "active") return null;
+  const expires = new Date(session.expires_at).getTime();
+  if (!Number.isFinite(expires) || expires <= Date.now()) {
+    await env.DB.prepare("DELETE FROM customer_sessions WHERE id = ?").bind(session.session_id).run();
+    return null;
+  }
+  return session;
+}
+
+async function createCustomerSession(env, customerId) {
+  const token = createSessionToken();
+  const tokenHash = await hashSessionToken(token);
+  const expiresAt = new Date(Date.now() + CUSTOMER_SESSION_DAYS * 86400000).toISOString();
+  await env.DB.prepare(`
+    INSERT INTO customer_sessions (customer_id, session_token_hash, expires_at)
+    VALUES (?, ?, ?)
+  `).bind(customerId, tokenHash, expiresAt).run();
+  return `${CUSTOMER_SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${CUSTOMER_SESSION_DAYS * 86400}`;
+}
+
+// ============================================================
 // JSON RESPONSE
 // ============================================================
 
@@ -404,6 +461,168 @@ export default {
 
 
     // ========================================================
+// CUSTOMER ACCOUNT API
+// ========================================================
+
+if (url.pathname === "/api/customer/register" && request.method === "POST") {
+  try {
+    const body = await request.json();
+    const name = String(body?.name || "").trim().slice(0, 100);
+    const phone = normalizeCustomerPhone(body?.phone);
+    const password = body?.password;
+    if (name.length < 2 || !/^01[3-9]\d{8}$/.test(phone) || typeof password !== "string" || password.length < 8 || password.length > 128) {
+      return json({ ok: false, error: "Enter your name, a valid Bangladesh mobile number, and a password of at least 8 characters." }, 400);
+    }
+    const existingAccount = await env.DB.prepare("SELECT id FROM customer_accounts WHERE phone = ? LIMIT 1").bind(phone).first();
+    if (existingAccount) return json({ ok: false, error: "An account already exists for this phone number. Please log in." }, 409);
+
+    const candidates = customerPhoneCandidates(phone);
+    const placeholders = candidates.map(() => "?").join(",");
+    let customer = await env.DB.prepare(`SELECT id, name, phone FROM customers WHERE phone IN (${placeholders}) ORDER BY id ASC LIMIT 1`).bind(...candidates).first();
+    let customerId;
+    if (customer) {
+      customerId = customer.id;
+      await env.DB.prepare(`UPDATE customers SET name = ?, phone = ?, status = 'active', updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(name, phone, customerId).run();
+    } else {
+      const created = await env.DB.prepare(`INSERT INTO customers (name, phone, address, city, country, status) VALUES (?, ?, '', '', 'Bangladesh', 'active')`).bind(name, phone).run();
+      customerId = created.meta.last_row_id;
+    }
+    const passwordHash = await hashPassword(password);
+    await env.DB.prepare(`INSERT INTO customer_accounts (customer_id, phone, password_hash, status) VALUES (?, ?, ?, 'active')`).bind(customerId, phone, passwordHash).run();
+    const cookie = await createCustomerSession(env, customerId);
+    return json({ ok: true, message: "Account created successfully.", customer: { id: customerId, name, phone } }, 201, { "Set-Cookie": cookie });
+  } catch (error) {
+    console.error("Customer registration error:", error);
+    return json({ ok: false, error: "Unable to create the account. Run the customer account migration and try again." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/login" && request.method === "POST") {
+  try {
+    const body = await request.json();
+    const phone = normalizeCustomerPhone(body?.phone);
+    const password = body?.password;
+    if (!/^01[3-9]\d{8}$/.test(phone) || typeof password !== "string" || !password) {
+      return json({ ok: false, error: "Enter your registered phone number and password." }, 400);
+    }
+    const account = await env.DB.prepare(`
+      SELECT a.customer_id, a.phone, a.password_hash, a.status, c.name
+      FROM customer_accounts a INNER JOIN customers c ON c.id = a.customer_id
+      WHERE a.phone = ? LIMIT 1
+    `).bind(phone).first();
+    if (!account || account.status !== "active" || !(await verifyPassword(password, account.password_hash))) {
+      return json({ ok: false, error: "Invalid phone number or password." }, 401);
+    }
+    const cookie = await createCustomerSession(env, account.customer_id);
+    return json({ ok: true, message: "Login successful.", customer: { id: account.customer_id, name: account.name, phone: account.phone } }, 200, { "Set-Cookie": cookie });
+  } catch (error) {
+    console.error("Customer login error:", error);
+    return json({ ok: false, error: "Unable to process login right now." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/me" && request.method === "GET") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, authenticated: false }, 401);
+  return json({ ok: true, authenticated: true, customer: { id: customer.customer_id, name: customer.name, phone: customer.phone } });
+}
+
+if (url.pathname === "/api/customer/logout" && request.method === "POST") {
+  try {
+    const token = getCookie(request, CUSTOMER_SESSION_COOKIE);
+    if (token) {
+      const tokenHash = await hashSessionToken(token);
+      await env.DB.prepare("DELETE FROM customer_sessions WHERE session_token_hash = ?").bind(tokenHash).run();
+    }
+    return json({ ok: true, message: "Logged out successfully." }, 200, { "Set-Cookie": `${CUSTOMER_SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0` });
+  } catch (error) {
+    console.error("Customer logout error:", error);
+    return json({ ok: false, error: "Unable to log out right now." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/profile" && request.method === "GET") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  return json({ ok: true, profile: { id: customer.customer_id, name: customer.name, phone: customer.phone, address: customer.address || "", city: customer.city || "" } });
+}
+
+if (url.pathname === "/api/customer/profile" && request.method === "PATCH") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  try {
+    const body = await request.json();
+    const name = String(body?.name || "").trim().slice(0, 100);
+    const address = String(body?.address || "").trim().slice(0, 500);
+    const city = String(body?.city || "").trim().slice(0, 100);
+    if (name.length < 2) return json({ ok: false, error: "Please enter your full name." }, 400);
+    await env.DB.prepare("UPDATE customers SET name = ?, address = ?, city = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(name, address, city, customer.customer_id).run();
+    return json({ ok: true, message: "Account details updated." });
+  } catch (error) {
+    console.error("Customer profile update error:", error);
+    return json({ ok: false, error: "Unable to update account details." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/orders" && request.method === "GET") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  try {
+    const { results } = await env.DB.prepare(`
+      SELECT id, order_number, subtotal, shipping_fee, total_amount, payment_method,
+             payment_status, order_status, shipping_name, shipping_phone,
+             shipping_address, shipping_city, created_at, updated_at
+      FROM orders WHERE customer_id = ? ORDER BY id DESC LIMIT 100
+    `).bind(customer.customer_id).all();
+    return json({ ok: true, orders: results });
+  } catch (error) {
+    console.error("Customer order history error:", error);
+    return json({ ok: false, error: "Unable to load order history." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/wishlist" && request.method === "GET") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  try {
+    const { results } = await env.DB.prepare(`
+      SELECT p.id, p.name, p.category, p.price, p.old_price, p.image_url
+      FROM customer_wishlist w INNER JOIN products p ON p.id = w.product_id
+      WHERE w.customer_id = ? AND p.status = 'active' ORDER BY w.created_at DESC
+    `).bind(customer.customer_id).all();
+    return json({ ok: true, wishlist: results });
+  } catch (error) {
+    console.error("Customer wishlist error:", error);
+    return json({ ok: false, error: "Unable to load wishlist. Run the customer account migration." }, 500);
+  }
+}
+
+if (url.pathname === "/api/customer/wishlist" && request.method === "POST") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  try {
+    const body = await request.json();
+    const productId = Number(body?.productId);
+    if (!Number.isInteger(productId) || productId < 1) return json({ ok: false, error: "Invalid product." }, 400);
+    const product = await env.DB.prepare("SELECT id FROM products WHERE id = ? AND status = 'active'").bind(productId).first();
+    if (!product) return json({ ok: false, error: "Product not found." }, 404);
+    await env.DB.prepare("INSERT OR IGNORE INTO customer_wishlist (customer_id, product_id) VALUES (?, ?)").bind(customer.customer_id, productId).run();
+    return json({ ok: true, message: "Added to wishlist." });
+  } catch (error) {
+    console.error("Wishlist add error:", error);
+    return json({ ok: false, error: "Unable to update wishlist." }, 500);
+  }
+}
+
+const customerWishlistDelete = url.pathname.match(/^\/api\/customer\/wishlist\/(\d+)$/);
+if (customerWishlistDelete && request.method === "DELETE") {
+  const customer = await getAuthenticatedCustomer(request, env);
+  if (!customer) return json({ ok: false, error: "Please log in." }, 401);
+  await env.DB.prepare("DELETE FROM customer_wishlist WHERE customer_id = ? AND product_id = ?").bind(customer.customer_id, Number(customerWishlistDelete[1])).run();
+  return json({ ok: true, message: "Removed from wishlist." });
+}
+
+// ========================================================
 // 3. CREATE CUSTOMER ORDER
 // ========================================================
 
@@ -465,85 +684,36 @@ if (
 
 
     // ----------------------------------------------------
-    // FIND OR CREATE CUSTOMER
+    // REQUIRE AN AUTHENTICATED CUSTOMER ACCOUNT
     // ----------------------------------------------------
 
-    let customerRecord =
-      await env.DB
-        .prepare(`
-          SELECT
-            id,
-            name,
-            phone
-          FROM customers
-          WHERE phone = ?
-          LIMIT 1
-        `)
-        .bind(
-          customer.phone
-        )
-        .first();
+    const authenticatedCustomer =
+      await getAuthenticatedCustomer(request, env);
 
-
-    let customerId;
-
-
-    if (customerRecord) {
-
-      customerId =
-        customerRecord.id;
-
-
-      // Update customer's latest information
-      await env.DB
-        .prepare(`
-          UPDATE customers
-          SET
-            name = ?,
-            address = ?,
-            city = ?,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `)
-        .bind(
-          customer.name,
-          customer.address,
-          customer.district,
-          customerId
-        )
-        .run();
-
-    } else {
-
-      const customerResult =
-        await env.DB
-          .prepare(`
-            INSERT INTO customers (
-              name,
-              phone,
-              address,
-              city,
-              country,
-              status
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-          `)
-          .bind(
-            customer.name,
-            customer.phone,
-            customer.address,
-            customer.district,
-            "Bangladesh",
-            "active"
-          )
-          .run();
-
-
-      customerId =
-        customerResult.meta.last_row_id;
-
+    if (!authenticatedCustomer) {
+      return json(
+        { ok: false, error: "Please log in before placing an order.", loginRequired: true },
+        401
+      );
     }
 
+    const customerId = authenticatedCustomer.customer_id;
+    // The account phone is authoritative; never trust a client-supplied customer ID.
+    customer.phone = authenticatedCustomer.phone;
+
+    await env.DB
+      .prepare(`
+        UPDATE customers
+        SET name = ?, address = ?, city = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `)
+      .bind(
+        String(customer.name).trim(),
+        String(customer.address).trim(),
+        String(customer.district).trim(),
+        customerId
+      )
+      .run();
 
     // ----------------------------------------------------
     // CHECK PRODUCTS + VARIANTS + STOCK
