@@ -13,6 +13,7 @@ let selectedSize = null;
 let selectedColor = null;
 let selectedVariant = null;
 let detailQuantity = 1;
+let activeHomeCategory = "";
 
 
 // ========================================================
@@ -150,16 +151,56 @@ async function loadProducts() {
 }
 
 
+
+// ========================================================
+// HOMEPAGE CATEGORY FILTER
+// ========================================================
+
+function showHomeCategory(category = "") {
+  activeHomeCategory = String(category || "").trim();
+
+  const heading = document.getElementById("productGridHeading");
+  const status = document.getElementById("productFilterStatus");
+
+  if (heading) {
+    heading.textContent = activeHomeCategory
+      ? `${activeHomeCategory} Collection`
+      : "New Arrivals";
+  }
+
+  if (status) {
+    status.hidden = !activeHomeCategory;
+    status.textContent = activeHomeCategory
+      ? `Showing only ${activeHomeCategory.toLowerCase()} products.`
+      : "";
+  }
+
+  renderProducts(products);
+
+  const grid = document.getElementById("new-arrivals");
+  if (grid) grid.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 // ========================================================
 // RENDER PRODUCTS
 // ========================================================
 
-function renderProducts(list = products) {
+function renderProducts(list = null) {
 
   const grid =
     document.getElementById("productGrid");
 
   if (!grid) return;
+
+  const sourceProducts = Array.isArray(list) ? list : products;
+  const visibleProducts = activeHomeCategory
+    ? sourceProducts.filter(product =>
+        String(product.category || "").trim().toLowerCase().replace(/s$/, "") ===
+        activeHomeCategory.trim().toLowerCase().replace(/s$/, "")
+      )
+    : sourceProducts;
+
+  list = visibleProducts;
 
   if (!list.length) {
 
@@ -1564,12 +1605,22 @@ function addSelectedVariantToCart() {
 // ========================================================
 
 function closeProductDetails() {
+  // Close any legacy homepage product modal safely.
+  // Older modal markup is still present on index.html, so a no-op here
+  // can leave its overlay on top of the page and make scrolling feel frozen.
+  const modal = document.getElementById("productModal");
 
-  // Product details are now displayed
-  // on product.html instead of a modal.
+  if (modal) {
+    modal.classList.remove("active", "show", "open");
+    modal.setAttribute("aria-hidden", "true");
+    modal.style.display = "none";
+  }
 
-  return;
-
+  // Restore page scrolling after the modal has been dismissed.
+  if (!document.getElementById("cartPanel")?.classList.contains("active")) {
+    document.body.style.overflow = "";
+    document.body.classList.remove("modal-open");
+  }
 }
 
 
@@ -2045,23 +2096,16 @@ function removeFromCart(index) {
 // ========================================================
 
 function openCart() {
-
-  const cart =
-    document.getElementById(
-      "cartPanel"
-    );
-
+  const cart = document.getElementById("cartPanel");
   if (!cart) return;
 
-  cart.classList.add(
-    "active"
-  );
-
+  cart.classList.add("active");
+  cart.setAttribute("aria-hidden", "false");
+  document.body.classList.add("cart-open");
   renderCart();
 
-  document.body.style.overflow =
-    "hidden";
-
+  const closeButton = cart.querySelector(".cart-head button");
+  if (closeButton) closeButton.focus({ preventScroll: true });
 }
 
 
@@ -2070,21 +2114,12 @@ function openCart() {
 // ========================================================
 
 function closeCart() {
-
-  const cart =
-    document.getElementById(
-      "cartPanel"
-    );
-
+  const cart = document.getElementById("cartPanel");
   if (!cart) return;
 
-  cart.classList.remove(
-    "active"
-  );
-
-  document.body.style.overflow =
-    "";
-
+  cart.classList.remove("active");
+  cart.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("cart-open");
 }
 
 
@@ -2530,3 +2565,27 @@ function buyNowSelectedVariant() {
     "checkout.html?buyNow=1";
 
 }
+
+
+// ========================================================
+// HOMEPAGE INTERACTIONS: CATEGORY FILTER + CART ESCAPE
+// ========================================================
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".category-card[data-category]").forEach(card => {
+    card.addEventListener("click", event => {
+      event.preventDefault();
+      showHomeCategory(card.dataset.category || "");
+      history.replaceState(null, "", "#new-arrivals");
+    });
+  });
+
+  document.querySelectorAll("[data-show-all-products]").forEach(link => {
+    link.addEventListener("click", () => {
+      showHomeCategory("");
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeCart();
+  });
+});
