@@ -288,11 +288,12 @@ function renderProducts(list = null) {
 </div>
 
             <button
-              class="add-btn"
+              class="add-btn home-add-to-cart"
               type="button"
-              onclick="goToProduct(${product.id})"
+              data-product-id="${Number(product.id)}"
+              onclick="handleHomeAddToCart(${Number(product.id)})"
             >
-              VIEW DETAILS
+              ADD TO CART
             </button>
 
           </div>
@@ -302,6 +303,102 @@ function renderProducts(list = null) {
 
     }).join("");
 
+}
+
+
+// ========================================================
+// HOMEPAGE ADD TO CART
+// ========================================================
+// Products with one simple, option-free variant can be added directly.
+// If size/color or multiple variants must be chosen, take the customer to
+// the product page so the correct variant is selected before adding.
+async function handleHomeAddToCart(productId) {
+  const id = Number(productId);
+  const product = products.find(item => Number(item.id) === id);
+
+  if (!Number.isInteger(id) || id <= 0 || !product) {
+    showToast("This product could not be found. Please refresh and try again.");
+    return;
+  }
+
+  const buttons = document.querySelectorAll(`.home-add-to-cart[data-product-id="${id}"]`);
+  buttons.forEach(button => {
+    button.disabled = true;
+    button.dataset.originalText = button.textContent;
+    button.textContent = "CHECKING...";
+  });
+
+  try {
+    const response = await fetch(`/api/products/${encodeURIComponent(id)}/variants`, {
+      method: "GET",
+      headers: { "Accept": "application/json" },
+      cache: "no-store"
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok || !Array.isArray(data.variants)) {
+      throw new Error(data.error || "Could not check product availability.");
+    }
+
+    const availableVariants = data.variants.filter(variant => Number(variant.stock_quantity) > 0);
+
+    if (!availableVariants.length) {
+      showToast("This product is currently out of stock.");
+      return;
+    }
+
+    const hasOptions = variant =>
+      String(variant.size ?? "").trim() !== "" ||
+      String(variant.color ?? "").trim() !== "";
+
+    // Only auto-add when there is exactly one unambiguous variant.
+    if (availableVariants.length !== 1 || hasOptions(availableVariants[0])) {
+      showToast("Please select your size and color to add this product.");
+      goToProduct(id);
+      return;
+    }
+
+    const variant = availableVariants[0];
+    const stock = Number(variant.stock_quantity);
+    const cart = getCart();
+    const existingIndex = cart.findIndex(item =>
+      Number(item.productId) === id && Number(item.variantId) === Number(variant.id)
+    );
+
+    if (existingIndex >= 0) {
+      const nextQuantity = Number(cart[existingIndex].quantity || 0) + 1;
+      if (nextQuantity > stock) {
+        showToast(`Only ${stock} available for this product.`);
+        return;
+      }
+      cart[existingIndex].quantity = nextQuantity;
+    } else {
+      cart.push({
+        productId: id,
+        variantId: Number(variant.id),
+        name: product.name,
+        price: Number(product.price),
+        image: product.image || "",
+        size: variant.size || "",
+        color: variant.color || "",
+        sku: variant.sku || "",
+        quantity: 1
+      });
+    }
+
+    saveCart(cart);
+    updateCount();
+    showToast(`${product.name} added to cart.`);
+  } catch (error) {
+    console.error("Homepage add-to-cart error:", error);
+    showToast("Could not add this product right now. Opening product details instead.");
+    goToProduct(id);
+  } finally {
+    buttons.forEach(button => {
+      button.disabled = false;
+      button.textContent = "ADD TO CART";
+    });
+  }
 }
 
 
@@ -2097,12 +2194,16 @@ function removeFromCart(index) {
 
 function openCart() {
   const cart = document.getElementById("cartPanel");
-  if (!cart) return;
+  if (!cart) {
+    showToast("Cart panel is unavailable. Please refresh the page.");
+    return;
+  }
 
+  // Do not lock the document scroll; the cart drawer has its own scroll area.
+  document.body.classList.remove("cart-open", "modal-open");
+  document.body.style.overflow = "";
   cart.classList.add("active");
   cart.setAttribute("aria-hidden", "false");
-  document.body.classList.remove("cart-open");
-  document.body.style.overflow = "";
   renderCart();
 
   const closeButton = cart.querySelector(".cart-head button");
