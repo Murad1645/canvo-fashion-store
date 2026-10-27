@@ -20,6 +20,175 @@
   >
 
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- CANVO homepage improvements -->
+  <style>
+    .topbar {
+      min-height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 10px 16px !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      letter-spacing: .17em !important;
+      line-height: 1.4 !important;
+      text-align: center !important;
+    }
+    .header { min-height: 86px !important; }
+    .brand {
+      display: inline-flex !important;
+      width: 138px !important;
+      height: 82px !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 138px !important;
+      overflow: visible !important;
+    }
+    .brand img {
+      display: block !important;
+      width: 126px !important;
+      height: 78px !important;
+      max-width: none !important;
+      object-fit: contain !important;
+    }
+    .hero-content .eyebrow { font-size: 13px !important; letter-spacing: .2em !important; }
+    .hero-content h1 { font-size: clamp(58px, 7vw, 88px) !important; line-height: .99 !important; }
+    .hero-content .hero-text { font-size: clamp(16px, 1.45vw, 19px) !important; line-height: 1.65 !important; }
+    .section-heading h2, .statement-inner h2, .newsletter h2 { font-size: clamp(36px, 4vw, 48px) !important; }
+    .section-heading > p:not(.eyebrow) { font-size: 15px !important; }
+    .hero-buttons { display: flex !important; flex-wrap: wrap !important; gap: 14px !important; }
+    .hero-buttons .btn {
+      min-width: 170px !important;
+      min-height: 54px !important;
+      padding: 16px 26px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      letter-spacing: .12em !important;
+      border: 1px solid transparent !important;
+      transition: transform .18s ease, background .18s ease, color .18s ease !important;
+    }
+    .hero-buttons .btn-gold {
+      background: #0f9f6e !important;
+      border-color: #0f9f6e !important;
+      color: #fff !important;
+    }
+    .hero-buttons .btn-gold:hover { background: #087653 !important; border-color: #087653 !important; transform: translateY(-2px); }
+    .hero-buttons .btn-outline {
+      background: #d6b45a !important;
+      border-color: #d6b45a !important;
+      color: #11152b !important;
+    }
+    .hero-buttons .btn-outline:hover { background: #efcf79 !important; border-color: #efcf79 !important; transform: translateY(-2px); }
+    .category-card { cursor: pointer; }
+    .category-card:focus-visible { outline: 3px solid #0f9f6e; outline-offset: 4px; }
+    .section-heading .category-filter-note { margin-top: 8px; color: #0f9f6e; font-weight: 600; }
+
+    /* Reliable, independently scrollable cart drawer */
+    #cartPanel.cart-panel {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 10000 !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      background: transparent !important;
+      transition: opacity .2s ease, visibility .2s ease !important;
+      overflow: hidden !important;
+    }
+    #cartPanel.cart-panel.active {
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      background: rgba(8, 12, 28, .48) !important;
+    }
+    #cartPanel .cart-overlay {
+      position: absolute !important;
+      inset: 0 !important;
+      display: block !important;
+      border: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      cursor: pointer !important;
+    }
+    #cartPanel .cart-drawer {
+      position: relative !important;
+      z-index: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      width: min(440px, 94vw) !important;
+      height: 100% !important;
+      max-height: 100dvh !important;
+      margin-left: auto !important;
+      padding: 0 !important;
+      background: #fff !important;
+      box-shadow: -12px 0 36px rgba(0,0,0,.18) !important;
+      transform: translateX(100%) !important;
+      transition: transform .25s ease !important;
+      overflow: hidden !important;
+    }
+    #cartPanel.active .cart-drawer { transform: translateX(0) !important; }
+    #cartPanel .cart-head {
+      flex: 0 0 auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      padding: 20px 22px !important;
+      border-bottom: 1px solid #e8e8e8 !important;
+      background: #fff !important;
+    }
+    #cartPanel .cart-head h3 { margin: 0 !important; font-size: 24px !important; }
+    #cartPanel .cart-head button {
+      width: 40px !important; height: 40px !important; border: 0 !important;
+      background: #f3f4f6 !important; color: #111 !important; font-size: 27px !important;
+      cursor: pointer !important; border-radius: 50% !important;
+    }
+    #cartPanel #cartItems {
+      display: block !important;
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      overscroll-behavior: contain !important;
+      -webkit-overflow-scrolling: touch !important;
+      padding: 16px 22px !important;
+    }
+    #cartPanel .cart-total {
+      flex: 0 0 auto !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      padding: 18px 22px !important;
+      border-top: 1px solid #e8e8e8 !important;
+      background: #fff !important;
+      font-size: 17px !important;
+    }
+    #cartPanel .cart-checkout {
+      flex: 0 0 auto !important;
+      width: calc(100% - 44px) !important;
+      min-height: 52px !important;
+      margin: 0 22px 22px !important;
+      border: 0 !important;
+      background: #0f9f6e !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+    }
+    body.cart-open { overflow: hidden !important; }
+    @media (max-width: 700px) {
+      .header { min-height: 74px !important; }
+      .brand { width: 108px !important; height: 68px !important; flex-basis: 108px !important; }
+      .brand img { width: 100px !important; height: 64px !important; }
+      .topbar { font-size: 11px !important; letter-spacing: .1em !important; }
+      .hero-content h1 { font-size: clamp(46px, 12vw, 66px) !important; }
+      .hero-buttons .btn { min-width: 145px !important; min-height: 50px !important; padding: 14px 18px !important; }
+    }
+  </style>
 </head>
 
 <body>
@@ -60,7 +229,7 @@
         Shop
       </a>
 
-      <a href="shop.html">
+      <a href="#new-arrivals" data-show-all-products>
         New Arrivals
       </a>
 
@@ -168,6 +337,7 @@
           <a
             href="#new-arrivals"
             class="btn btn-gold"
+            data-show-all-products
           >
             SHOP NOW
           </a>
@@ -220,6 +390,7 @@
         <a
           class="category-card shoes"
           href="#new-arrivals"
+          data-category="Shoes"
         >
 
           <div>
@@ -244,6 +415,7 @@
         <a
           class="category-card bags"
           href="#new-arrivals"
+          data-category="Bags"
         >
 
           <div>
@@ -268,6 +440,7 @@
         <a
           class="category-card shirts"
           href="#new-arrivals"
+          data-category="Shirts"
         >
 
           <div>
@@ -292,6 +465,7 @@
         <a
           class="category-card pants"
           href="#new-arrivals"
+          data-category="Pants"
         >
 
           <div>
@@ -334,9 +508,10 @@
             JUST IN
           </p>
 
-          <h2>
+          <h2 id="productGridHeading">
             New Arrivals
           </h2>
+          <p id="productFilterStatus" class="category-filter-note" aria-live="polite" hidden></p>
 
         </div>
 
@@ -904,63 +1079,20 @@
 </div>
 
   <!-- =====================================================
-       CART
+       CART DRAWER
   ====================================================== -->
-
-  <aside
-    class="cart-panel"
-    id="cartPanel"
-  >
-
-    <div class="cart-head">
-
-      <h3>
-        Your Cart
-      </h3>
-
-
-      <button
-        onclick="closeCart()"
-        type="button"
-      >
-        ×
-      </button>
-
-    </div>
-
-
-    <div id="cartItems">
-
-      <p class="empty">
-        Your cart is empty.
-      </p>
-
-    </div>
-
-
-    <div class="cart-total">
-
-      <span>
-        Total
-      </span>
-
-
-      <strong id="cartTotal">
-        ৳0
-      </strong>
-
-    </div>
-
-
-    <button
-      class="btn btn-gold full"
-      onclick="checkout()"
-      type="button"
-    >
-      CHECKOUT
-    </button>
-
-  </aside>
+  <div class="cart-panel" id="cartPanel" aria-hidden="true">
+    <button class="cart-overlay" type="button" onclick="closeCart()" aria-label="Close cart overlay"></button>
+    <aside class="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart">
+      <div class="cart-head">
+        <h3>Your Cart</h3>
+        <button onclick="closeCart()" type="button" aria-label="Close cart">×</button>
+      </div>
+      <div id="cartItems"><p class="empty">Your cart is empty.</p></div>
+      <div class="cart-total"><span>Total</span><strong id="cartTotal">৳0</strong></div>
+      <button class="cart-checkout" onclick="checkout()" type="button">CHECKOUT</button>
+    </aside>
+  </div>
 
 
   <!-- =====================================================
