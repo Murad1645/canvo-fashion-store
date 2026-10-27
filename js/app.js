@@ -53,6 +53,17 @@ async function initializeStore() {
   }
 
   updateCount();
+  await updateCustomerHeader();
+
+  // Close the compact live-search panel when clicking outside it.
+  document.addEventListener("click", event => {
+    const panel = document.getElementById("searchModal");
+    const trigger = document.querySelector(".search-action");
+    if (panel && panel.classList.contains("active") &&
+        !panel.contains(event.target) && !(trigger && trigger.contains(event.target))) {
+      closeSearch();
+    }
+  });
 
 }
 
@@ -239,8 +250,9 @@ function renderProducts(list = null) {
           <div
             class="product-image"
             onclick="goToProduct(${product.id})"
-            style="cursor:pointer;"
+            style="cursor:pointer; position:relative;"
           >
+            <button type="button" class="canvo-wishlist-card" aria-label="Save ${escapeHtml(product.name)} to wishlist" title="Save to wishlist" onclick="toggleWishlist(${Number(product.id)}, event)">♡</button>
 
             <img
               src="${escapeHtml(product.image)}"
@@ -2227,6 +2239,84 @@ function closeCart() {
 
 
 // ========================================================
+// CUSTOMER WISHLIST
+// ========================================================
+
+async function toggleWishlist(productId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  try {
+    const session = await fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" });
+    if (!session.ok) {
+      window.location.href = "login.html?returnTo=" + encodeURIComponent("account.html?section=wishlist");
+      return;
+    }
+    const response = await fetch("/api/customer/wishlist", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: Number(productId) })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "Could not save this product.");
+    showToast("Product saved to your wishlist.");
+  } catch (error) {
+    showToast(error.message || "Could not update wishlist.");
+  }
+}
+
+// ========================================================
+// CUSTOMER LOGIN STATE IN HEADER
+// ========================================================
+
+async function updateCustomerHeader() {
+  const loginLink = document.querySelector(".login-action");
+  const actions = document.querySelector(".canvo-header-actions");
+  if (!loginLink || !actions) return;
+
+  let customer = null;
+  try {
+    const response = await fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok && data.authenticated) customer = data.customer;
+    }
+  } catch (_) {}
+
+  let logoutButton = actions.querySelector(".customer-logout-action");
+  if (customer) {
+    loginLink.href = "account.html";
+    loginLink.setAttribute("aria-label", "Customer account dashboard");
+    loginLink.title = "My account";
+    loginLink.innerHTML = `<span aria-hidden="true">♙</span><small>ACCOUNT</small>`;
+    if (!logoutButton) {
+      logoutButton = document.createElement("button");
+      logoutButton.type = "button";
+      logoutButton.className = "icon-btn customer-logout-action";
+      logoutButton.setAttribute("aria-label", "Log out");
+      logoutButton.title = "Log out";
+      logoutButton.innerHTML = `<span aria-hidden="true">↪</span><small>LOGOUT</small>`;
+      logoutButton.addEventListener("click", async () => {
+        try {
+          await fetch("/api/customer/logout", { method: "POST", credentials: "same-origin" });
+        } finally {
+          window.location.href = "index.html";
+        }
+      });
+      loginLink.insertAdjacentElement("afterend", logoutButton);
+    }
+  } else {
+    loginLink.href = "login.html";
+    loginLink.setAttribute("aria-label", "Customer login");
+    loginLink.title = "Customer login";
+    loginLink.innerHTML = `<span aria-hidden="true">♙</span><small>LOGIN</small>`;
+    if (logoutButton) logoutButton.remove();
+  }
+}
+
+// ========================================================
 // SEARCH
 // ========================================================
 
@@ -2238,12 +2328,9 @@ function searchProducts() {
   const query = input.value.trim().toLowerCase();
   const matches = !query
     ? products.slice(0, 5)
-    : products.filter(product => {
-        const name = String(product.name || "").toLowerCase();
-        const category = String(product.category || "").toLowerCase();
-        const description = String(product.description || "").toLowerCase();
-        return name.includes(query) || category.includes(query) || description.includes(query);
-      }).slice(0, 10);
+    : products.filter(product =>
+        String(product.name || "").toLowerCase().includes(query)
+      ).slice(0, 10);
 
   if (!matches.length) {
     results.innerHTML = '<div class="search-empty">No matching products found. Try another name or category.</div>';
@@ -2290,17 +2377,22 @@ function subscribeNewsletter(event) {
 // CHECKOUT PLACEHOLDER
 // ========================================================
 
-function checkout() {
-
+async function checkout() {
   const cart = getCart();
-
   if (!cart.length) {
     showToast("Your cart is empty.");
     return;
   }
-
-  window.location.href =
-    "checkout.html";
+  try {
+    const response = await fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) {
+      window.location.href = "login.html?returnTo=" + encodeURIComponent("checkout.html");
+      return;
+    }
+    window.location.href = "checkout.html";
+  } catch (error) {
+    showToast("Could not verify your account. Please try again.");
+  }
 }
 
 
@@ -2558,12 +2650,17 @@ function subscribe(event) {
 // WISHLIST
 // ========================================================
 
-function openWishlist() {
-
-  showToast(
-    "Wishlist will be available soon."
-  );
-
+async function openWishlist() {
+  try {
+    const response = await fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) {
+      window.location.href = "login.html?returnTo=" + encodeURIComponent("account.html?section=wishlist");
+      return;
+    }
+    window.location.href = "account.html?section=wishlist";
+  } catch (_) {
+    showToast("Could not open wishlist. Please try again.");
+  }
 }
 
 
@@ -2648,9 +2745,16 @@ function buyNowSelectedVariant() {
     ])
   );
 
-  // Go to checkout
-  window.location.href =
-    "checkout.html?buyNow=1";
+  // Require a customer session before checkout. Keep the Buy Now item in storage.
+  fetch("/api/customer/me", { credentials: "same-origin", cache: "no-store" })
+    .then(response => {
+      if (!response.ok) {
+        window.location.href = "login.html?returnTo=" + encodeURIComponent("checkout.html?buyNow=1");
+      } else {
+        window.location.href = "checkout.html?buyNow=1";
+      }
+    })
+    .catch(() => showToast("Could not verify your account. Please try again."));
 
 }
 
