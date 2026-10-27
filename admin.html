@@ -3603,7 +3603,10 @@ async function loadOrders() {
   try {
 
     const response =
-      await fetch("/api/admin/orders");
+      await fetch("/api/admin/orders", {
+        method: "GET",
+        credentials: "include"
+      });
 
     const data =
       await response.json();
@@ -4040,6 +4043,32 @@ async function viewOrder(orderId) {
 
       </div>
 
+      <!-- ORDER TRACKING STATUS UPDATE -->
+      <div style="margin-bottom:25px;padding:18px;border:1px solid #dbe5df;border-radius:10px;background:#f7fbf8;">
+        <h4 style="margin-bottom:8px;font-size:16px;">Order Tracking</h4>
+        <p style="margin-bottom:14px;color:#64748b;font-size:13px;">Update the order status. The customer will see the saved status in their tracking page.</p>
+        <div class="form-group">
+          <label for="orderStatusSelect">New order status</label>
+          <select id="orderStatusSelect">
+            <option value="pending" ${String(order.order_status || "pending").toLowerCase() === "pending" ? "selected" : ""}>Pending</option>
+            <option value="confirmed" ${String(order.order_status || "").toLowerCase() === "confirmed" ? "selected" : ""}>Confirmed</option>
+            <option value="processing" ${String(order.order_status || "").toLowerCase() === "processing" ? "selected" : ""}>Processing</option>
+            <option value="packaging" ${String(order.order_status || "").toLowerCase() === "packaging" ? "selected" : ""}>Packaging</option>
+            <option value="shipped" ${String(order.order_status || "").toLowerCase() === "shipped" ? "selected" : ""}>Shipped</option>
+            <option value="delivered" ${String(order.order_status || "").toLowerCase() === "delivered" ? "selected" : ""}>Delivered</option>
+            <option value="cancelled" ${String(order.order_status || "").toLowerCase() === "cancelled" ? "selected" : ""}>Cancelled</option>
+            <option value="delivery_failed" ${String(order.order_status || "").toLowerCase() === "delivery_failed" ? "selected" : ""}>Delivery Failed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="orderStatusNote">Update note (optional)</label>
+          <textarea id="orderStatusNote" placeholder="e.g. Handed over to courier; tracking number..." style="min-height:75px;"></textarea>
+        </div>
+        <div id="orderStatusUpdateMessage" class="form-message" role="status" aria-live="polite"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+          <button type="button" class="save-button" id="saveOrderStatusButton" onclick="saveOrderStatus(${Number(order.id)})">Save Status</button>
+        </div>
+      </div>
 
       <!-- PRODUCTS -->
 
@@ -4200,6 +4229,53 @@ async function viewOrder(orderId) {
 // =========================================
 // CLOSE ORDER DETAILS MODAL
 // =========================================
+
+async function saveOrderStatus(orderId) {
+  const statusSelect = document.getElementById("orderStatusSelect");
+  const noteInput = document.getElementById("orderStatusNote");
+  const message = document.getElementById("orderStatusUpdateMessage");
+  const button = document.getElementById("saveOrderStatusButton");
+  if (!statusSelect || !noteInput || !message || !button) return;
+
+  message.className = "form-message";
+  message.style.display = "none";
+  button.disabled = true;
+  button.textContent = "Saving...";
+
+  try {
+    const response = await fetch(`/api/admin/orders/${Number(orderId)}/status`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: statusSelect.value,
+        note: noteInput.value.trim()
+      })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "Unable to update order status.");
+    }
+
+    message.textContent = data.message || "Order status updated successfully.";
+    message.className = "form-message success";
+    noteInput.value = "";
+    await loadOrders();
+    await viewOrder(Number(orderId));
+  } catch (error) {
+    console.error("Order status update error:", error);
+    message.textContent = error.message || "Unable to update order status.";
+    message.className = "form-message error";
+  } finally {
+    const currentButton = document.getElementById("saveOrderStatusButton");
+    if (currentButton) {
+      currentButton.disabled = false;
+      currentButton.textContent = "Save Status";
+    }
+  }
+}
+
 
 function closeOrderDetailsModal() {
 
