@@ -38,17 +38,17 @@
     .header { min-height: 86px !important; }
     .brand {
       display: inline-flex !important;
-      width: 138px !important;
-      height: 82px !important;
+      width: 164px !important;
+      height: 94px !important;
       align-items: center !important;
       justify-content: center !important;
-      flex: 0 0 138px !important;
+      flex: 0 0 164px !important;
       overflow: visible !important;
     }
     .brand img {
       display: block !important;
-      width: 126px !important;
-      height: 78px !important;
+      width: 158px !important;
+      height: 88px !important;
       max-width: none !important;
       object-fit: contain !important;
     }
@@ -219,10 +219,10 @@
     .canvo-bata-header .brand {
       grid-column: 2 !important; grid-row: 1 !important;
       justify-self: center !important; align-self: center !important;
-      width: 150px !important; height: 76px !important; flex: none !important;
+      width: 168px !important; height: 92px !important; flex: none !important;
       margin: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;
     }
-    .canvo-bata-header .brand img { width: 145px !important; height: 72px !important; max-width: 100% !important; object-fit: contain !important; }
+    .canvo-bata-header .brand img { width: 160px !important; height: 88px !important; max-width: 100% !important; object-fit: contain !important; }
     .canvo-bata-header .header-actions {
       grid-column: 3 !important; grid-row: 1 !important;
       display: flex !important; align-items: center !important; justify-content: flex-end !important;
@@ -236,7 +236,10 @@
       border: 0 !important; background: transparent !important; color: #11152b !important;
       text-decoration: none !important; font-size: 22px !important; line-height: 1 !important; cursor: pointer !important;
     }
-    .canvo-bata-header .header-actions small { display: block !important; font-size: 8px !important; line-height: 1.1 !important; letter-spacing: .07em !important; font-weight: 700 !important; white-space: nowrap !important; }
+    .canvo-bata-header .header-actions small { display: block !important; font-size: 10px !important; line-height: 1.15 !important; letter-spacing: .055em !important; font-weight: 700 !important; white-space: nowrap !important; }
+    .canvo-bata-header .account-icon { display: block !important; width: 23px !important; height: 23px !important; flex: 0 0 23px !important; }
+    .canvo-bata-header .find-store-link { color: #333 !important; text-decoration: none !important; font-weight: 600 !important; }
+    .canvo-bata-header .find-store-link:hover { color: #0f9f6e !important; text-decoration: underline !important; }
     .canvo-bata-header .whatsapp-action span { color: #159b55 !important; font-size: 23px !important; }
     .canvo-bata-header .cart-btn #cartCount { position: absolute !important; top: -2px !important; right: -5px !important; min-width: 17px !important; height: 17px !important; padding: 0 4px !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 50% !important; background: #d6b45a !important; color: #11152b !important; font-size: 10px !important; font-weight: 700 !important; }
     .canvo-bata-header .nav {
@@ -245,8 +248,18 @@
       gap: clamp(24px, 4vw, 58px) !important; width: 100% !important; margin: 0 !important;
       padding: 18px 0 20px !important; border-top: 1px solid #f0f0f0 !important;
     }
-    .canvo-bata-header .nav a { color: #101323 !important; font-size: 13px !important; font-weight: 700 !important; letter-spacing: .12em !important; text-decoration: none !important; }
-    .canvo-bata-header .nav a:hover { color: #0f9f6e !important; }
+    .canvo-bata-header .nav a {
+      display: inline-flex !important; align-items: center !important; justify-content: center !important;
+      padding: 12px 18px !important; border: 1px solid #0f9f6e !important; border-radius: 2px !important;
+      background: #0f9f6e !important; color: #fff !important; font-size: 13px !important;
+      font-weight: 700 !important; letter-spacing: .09em !important; text-decoration: none !important;
+      line-height: 1.2 !important; transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+    }
+    .canvo-bata-header .nav a:after { display: none !important; }
+    .canvo-bata-header .nav a:hover, .canvo-bata-header .nav a:focus-visible {
+      background: #087653 !important; border-color: #087653 !important; color: #fff !important;
+      transform: translateY(-1px) !important;
+    }
     /* Search is a small dropdown, not a full-screen overlay. */
     #searchModal.search-modal {
       position: fixed !important; inset: auto 4vw auto auto !important;
@@ -277,12 +290,12 @@
     @media (max-width: 900px) {
       .header.canvo-bata-header { grid-template-columns: 1fr auto !important; padding: 8px 16px 0 !important; }
       .canvo-bata-header .header-contact { grid-column: 1 / -1 !important; grid-row: 2 !important; justify-content: center !important; padding: 8px 0 !important; font-size: 11px !important; }
-      .canvo-bata-header .brand { grid-column: 1 !important; grid-row: 1 !important; justify-self: start !important; width: 112px !important; height: 62px !important; }
-      .canvo-bata-header .brand img { width: 108px !important; height: 58px !important; }
+      .canvo-bata-header .brand { grid-column: 1 !important; grid-row: 1 !important; justify-self: start !important; width: 124px !important; height: 72px !important; }
+      .canvo-bata-header .brand img { width: 120px !important; height: 68px !important; }
       .canvo-bata-header .header-actions { grid-column: 2 !important; grid-row: 1 !important; gap: 9px !important; }
       .canvo-bata-header .header-actions small { display: none !important; }
       .canvo-bata-header .nav { grid-column: 1 / -1 !important; grid-row: 3 !important; gap: 18px !important; flex-wrap: wrap !important; padding: 14px 0 16px !important; }
-      .canvo-bata-header .nav a { font-size: 11px !important; }
+      .canvo-bata-header .nav a { font-size: 11px !important; padding: 10px 13px !important; }
       #searchModal.search-modal { top: 150px !important; right: 4vw !important; }
     }
     @media (max-width: 520px) {
@@ -290,7 +303,7 @@
       .canvo-bata-header .header-actions { gap: 6px !important; }
       .canvo-bata-header .header-actions .icon-btn, .canvo-bata-header .header-actions .header-action { min-width: 27px !important; font-size: 19px !important; }
       .canvo-bata-header .nav { gap: 12px !important; }
-      .canvo-bata-header .nav a { font-size: 10px !important; letter-spacing: .04em !important; }
+      .canvo-bata-header .nav a { font-size: 10px !important; letter-spacing: .035em !important; padding: 9px 10px !important; }
       #searchModal.search-modal { top: 178px !important; right: 3vw !important; width: 94vw !important; padding: 20px !important; }
     }
 
@@ -328,7 +341,13 @@
 
     <div class="header-contact" aria-label="Store contact information">
       <span class="contact-pin" aria-hidden="true">⌖</span>
-      <span>FIND A STORE</span>
+      <a
+        class="find-store-link"
+        href="https://www.google.com/maps/search/?api=1&query=Ranibazar%20Rd%2C%20Rajshahi%206100%2C%20Bangladesh"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Find CANVO store at Ranibazar Rd, Rajshahi 6100, Bangladesh on Google Maps"
+      >FIND A STORE</a>
       <span class="contact-separator">|</span>
       <span>CUSTOMER CARE:</span>
       <a href="tel:0177144484">0177144484</a>
@@ -369,7 +388,10 @@
 
     <div class="header-actions canvo-header-actions">
       <a class="header-action login-action" href="login.html" aria-label="Customer login" title="Customer login">
-        <span aria-hidden="true">♙</span><small>LOGIN</small>
+        <svg class="account-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M5 20c.6-3.5 3.2-5.5 7-5.5s6.4 2 7 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg><small>LOGIN</small>
       </a>
 
       <button aria-label="My wishlist" class="icon-btn wishlist-action" onclick="openWishlist()" type="button" title="My wishlist">
@@ -380,7 +402,7 @@
         <span aria-hidden="true">◉</span><small>WHATSAPP</small>
       </a>
 
-      <button aria-label="Open shopping cart" class="icon-btn cart-btn" onclick="openCart()" type="button" title="Shopping cart">
+      <button aria-label="Open shopping cart" class="icon-btn cart-btn" type="button" title="Shopping cart">
         🛒 <span id="cartCount" class="cart-count">0</span><small>CART</small>
       </button>
 
