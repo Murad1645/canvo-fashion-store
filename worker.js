@@ -1026,9 +1026,16 @@ if (
     // PAYMENT METHOD
     // ----------------------------------------------------
 
-    const paymentMethod =
-      body.paymentMethod ||
-      "online";
+    const paymentMethod = String(body.paymentMethod || "cod").toLowerCase();
+    const paymentProvider = String(body.paymentProvider || "").toLowerCase();
+    const transactionId = String(body.transactionId || "").trim().slice(0, 100);
+    if (!['cod', 'online', 'bkash', 'nagad', 'rocket'].includes(paymentMethod)) {
+      return json({ ok: false, error: "Invalid payment method." }, 400);
+    }
+    if (paymentMethod !== 'cod' && (!['bkash','nagad','rocket'].includes(paymentProvider) || transactionId.length < 5)) {
+      return json({ ok: false, error: "Choose bKash, Nagad or Rocket and enter a valid Transaction ID." }, 400);
+    }
+    const storedPaymentMethod = paymentMethod === 'cod' ? 'cod' : paymentProvider;
 
 
     // ----------------------------------------------------
@@ -1070,6 +1077,9 @@ if (
             total_amount,
             payment_method,
             payment_status,
+            payment_provider,
+            transaction_id,
+            payment_verification_note,
             order_status,
             shipping_name,
             shipping_phone,
@@ -1077,10 +1087,13 @@ if (
             shipping_city,
             notes,
             discount,
-            partial_payment
+            partial_payment,
+            payment_provider,
+            transaction_id,
+            payment_verification_note
           )
           VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
           )
         `)
         .bind(
@@ -1095,9 +1108,9 @@ if (
 
           totalAmount,
 
-          paymentMethod,
+          storedPaymentMethod,
 
-          "pending",
+          paymentMethod === "cod" ? "pending" : "pending_verification",
 
           "pending",
 
@@ -1113,7 +1126,13 @@ if (
 
           discount,
 
-          partialPayment
+          partialPayment,
+
+          paymentMethod === "cod" ? null : paymentProvider,
+
+          paymentMethod === "cod" ? null : transactionId,
+
+          paymentMethod === "cod" ? "Cash on Delivery" : "Awaiting admin verification"
 
         )
         .run();
@@ -1256,7 +1275,9 @@ if (
             paymentMethod,
 
           paymentStatus:
-            "pending",
+            paymentMethod === "cod" ? "pending" : "pending_verification",
+          paymentProvider: paymentMethod === "cod" ? null : paymentProvider,
+          transactionId: paymentMethod === "cod" ? null : transactionId,
 
           orderStatus:
             "pending"
@@ -2372,6 +2393,9 @@ if (
             total_amount,
             payment_method,
             payment_status,
+            payment_provider,
+            transaction_id,
+            payment_verification_note,
             order_status,
             shipping_name,
             shipping_phone,
@@ -2413,6 +2437,26 @@ if (
 
   }
 
+}
+
+// ADMIN — VERIFY MOBILE PAYMENT (manual TrxID review)
+if (url.pathname.startsWith("/api/admin/orders/") && url.pathname.endsWith("/payment-status") && request.method === "PATCH") {
+  const admin = await getAuthenticatedAdmin(request, env);
+  if (!admin) return json({ ok: false, error: "Unauthorized." }, 401);
+  const orderId = url.pathname.split("/").slice(-2, -1)[0];
+  if (!/^\d+$/.test(orderId || "")) return json({ ok: false, error: "Invalid order ID." }, 400);
+  try {
+    const body = await request.json();
+    const decision = String(body.status || "").toLowerCase();
+    const note = String(body.note || "").trim().slice(0, 500);
+    if (!['paid','rejected'].includes(decision)) return json({ ok: false, error: "Status must be paid or rejected." }, 400);
+    const order = await env.DB.prepare("SELECT id, payment_method, payment_status, transaction_id FROM orders WHERE id = ? LIMIT 1").bind(orderId).first();
+    if (!order) return json({ ok: false, error: "Order not found." }, 404);
+    if (String(order.payment_method || '').toLowerCase() === 'cod') return json({ ok: false, error: "COD orders cannot be marked paid through TrxID verification." }, 400);
+    if (!order.transaction_id) return json({ ok: false, error: "No Transaction ID was submitted for this order." }, 400);
+    await env.DB.prepare("UPDATE orders SET payment_status = ?, payment_verification_note = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(decision === 'paid' ? 'paid' : 'payment_rejected', note || (decision === 'paid' ? 'Payment verified by admin' : 'Payment could not be verified'), orderId).run();
+    return json({ ok: true, paymentStatus: decision === 'paid' ? 'paid' : 'payment_rejected', message: decision === 'paid' ? 'Payment marked as paid.' : 'Payment marked as rejected.' });
+  } catch (error) { console.error('Payment verification error:', error); return json({ ok: false, error: "Unable to update payment status. Ensure the payment migration has been run." }, 500); }
 }
 
 // ========================================================
@@ -2557,6 +2601,9 @@ if (
             total_amount,
             payment_method,
             payment_status,
+            payment_provider,
+            transaction_id,
+            payment_verification_note,
             order_status,
             shipping_name,
             shipping_phone,
