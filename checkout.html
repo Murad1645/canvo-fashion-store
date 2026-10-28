@@ -1114,7 +1114,17 @@
           </span>
 
         </div>
-
+        <div id="mobilePaymentDetails" style="margin-top:16px;padding:16px;border:1px solid #dce8e2;border-radius:8px;background:#f6fbf8;">
+          <strong>Pay first, then submit your Transaction ID</strong>
+          <p style="margin:8px 0;color:#475467;font-size:13px;line-height:1.6;">Send payment to <strong>01771441173</strong> using your selected mobile banking service. Keep the TrxID; your order will remain Pending Verification until CANVO checks it.</p>
+          <label style="display:block;margin:12px 0 6px;font-size:12px;font-weight:700;">Mobile payment service</label>
+          <select id="paymentProvider" style="width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:6px;background:white;">
+            <option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option>
+          </select>
+          <label for="transactionId" style="display:block;margin:12px 0 6px;font-size:12px;font-weight:700;">Transaction ID (TrxID)</label>
+          <input id="transactionId" type="text" maxlength="100" autocomplete="off" placeholder="Enter the TrxID from your payment SMS" style="width:100%;padding:12px;border:1px solid #d0d5dd;border-radius:6px;">
+          <small style="display:block;margin-top:8px;color:#667085;">Submitting a TrxID does not automatically confirm payment.</small>
+        </div>
       </div>
 
 
@@ -1891,13 +1901,12 @@ const partialPayment =
     }
 
 
-    /*
-     * SUCCESS
-     */
-
-    alert(
-      `Order placed successfully!\n\nOrder Number: ${data.order.orderNumber}\nTotal: ৳${Number(data.order.total).toLocaleString()}`
-    );
+    /* Order is placed; mobile payments still need admin verification. */
+    const placedPaymentMethod = document.querySelector('input[name="payment"]:checked')?.value || "cod";
+    const paymentMessage = placedPaymentMethod === "cod"
+      ? "Cash on Delivery selected."
+      : "Payment status: Pending Verification. CANVO will check your TrxID before marking it paid.";
+    alert(`Order placed successfully!\n\nOrder Number: ${data.order.orderNumber}\nTotal: ৳${Number(data.order.total).toLocaleString()}\n${paymentMessage}`);
 
 
     /*
@@ -2019,6 +2028,16 @@ document.addEventListener(
 
   </script>
 
+
+<script>
+(function(){
+ const details=document.getElementById('mobilePaymentDetails');
+ const trx=document.getElementById('transactionId');
+ function syncPaymentFields(){const method=document.querySelector('input[name="payment"]:checked')?.value||'cod';const online=method!=='cod';if(details)details.style.display=online?'block':'none';if(trx)trx.required=online;}
+ document.querySelectorAll('input[name="payment"]').forEach(el=>el.addEventListener('change',syncPaymentFields));
+ document.addEventListener('DOMContentLoaded',syncPaymentFields);syncPaymentFields();
+})();
+</script>
 </body>
 
 </html>

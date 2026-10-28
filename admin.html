@@ -4032,10 +4032,12 @@ async function viewOrder(orderId) {
 
         <p style="margin-top:6px;">
           <strong>Payment Status:</strong>
-          ${escapeHtml(
-            order.payment_status || "-"
-          )}
+          ${escapeHtml(order.payment_status || "-")}
         </p>
+        <p style="margin-top:6px;"><strong>Payment Provider:</strong> ${escapeHtml(order.payment_provider || (order.payment_method === 'cod' ? 'Cash on Delivery' : '-'))}</p>
+        <p style="margin-top:6px;"><strong>Transaction ID:</strong> <code>${escapeHtml(order.transaction_id || '-')}</code></p>
+        <p style="margin-top:6px;"><strong>Verification Note:</strong> ${escapeHtml(order.payment_verification_note || '-')}</p>
+        ${order.payment_method !== 'cod' && order.transaction_id && !['paid','payment_rejected'].includes(String(order.payment_status||'').toLowerCase()) ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;padding:12px;background:#f6fbf8;border-radius:8px;"><input id="paymentVerifyNote" maxlength="500" placeholder="Verification note (optional)" style="flex:1;min-width:180px;padding:10px;border:1px solid #d0d5dd;border-radius:6px;"><button type="button" class="action-button" onclick="verifyOrderPayment(${Number(order.id)}, 'paid')">Mark Payment Verified</button><button type="button" class="action-button" onclick="verifyOrderPayment(${Number(order.id)}, 'rejected')">Reject TrxID</button></div>` : ''}
 
 
         <p style="margin-top:6px;">
@@ -4249,6 +4251,20 @@ async function loadOrderStatusHistory(orderId) {
   } catch (error) {
     target.textContent = error.message;
   }
+}
+
+async function verifyOrderPayment(orderId, status) {
+  const note = document.getElementById('paymentVerifyNote')?.value || '';
+  const action = status === 'paid' ? 'mark this payment as verified' : 'reject this Transaction ID';
+  if (!confirm(`Are you sure you want to ${action}? Verify the transaction in your bKash/Nagad/Rocket account first.`)) return;
+  try {
+    const response = await fetch(`/api/admin/orders/${orderId}/payment-status`, { method: 'PATCH', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status, note}) });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || 'Payment update failed.');
+    alert(data.message || 'Payment status updated.');
+    if (typeof viewOrder === 'function') viewOrder(orderId);
+    else location.reload();
+  } catch (error) { alert(error.message || 'Payment update failed.'); }
 }
 
 function closeOrderDetailsModal() {
