@@ -3603,10 +3603,7 @@ async function loadOrders() {
   try {
 
     const response =
-      await fetch("/api/admin/orders", {
-        method: "GET",
-        credentials: "include"
-      });
+      await fetch("/api/admin/orders");
 
     const data =
       await response.json();
@@ -4006,12 +4003,23 @@ async function viewOrder(orderId) {
         </h4>
 
 
-        <p>
+        <p style="margin-top:6px;">
           <strong>Order Status:</strong>
-          ${escapeHtml(
-            order.order_status || "-"
-          )}
+          <span id="orderStatusCurrent">${escapeHtml(order.order_status || "pending")}</span>
         </p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:14px;padding:14px;background:#f7f8fa;border-radius:8px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;flex:1;min-width:180px;">Update tracking status
+            <select id="orderStatusSelect" style="padding:10px;border:1px solid #d0d5dd;border-radius:6px;font:inherit;">
+              ${[["pending","Pending"],["confirmed","Confirmed"],["processing","Processing"],["packaging","Packaging"],["shipped","Shipped"],["delivered","Delivered"],["cancelled","Cancelled"],["delivery_failed","Delivery Failed"]].map(([v,l])=>`<option value="${v}" ${String(order.order_status||"pending").toLowerCase()===v?"selected":""}>${l}</option>`).join("")}
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;flex:2;min-width:200px;">Customer-facing note (optional)
+            <input id="orderStatusNote" maxlength="500" placeholder="e.g. Parcel handed to courier" style="padding:10px;border:1px solid #d0d5dd;border-radius:6px;font:inherit;">
+          </label>
+          <button type="button" class="action-button" onclick="saveOrderStatus(${Number(order.id)})">Save Status</button>
+          <span id="orderStatusMessage" role="status" style="font-size:12px;"></span>
+        </div>
+        <div id="orderStatusHistory" style="margin-top:12px;font-size:12px;color:#667085;">Loading status history…</div>
 
 
         <p style="margin-top:6px;">
@@ -4043,32 +4051,6 @@ async function viewOrder(orderId) {
 
       </div>
 
-      <!-- ORDER TRACKING STATUS UPDATE -->
-      <div style="margin-bottom:25px;padding:18px;border:1px solid #dbe5df;border-radius:10px;background:#f7fbf8;">
-        <h4 style="margin-bottom:8px;font-size:16px;">Order Tracking</h4>
-        <p style="margin-bottom:14px;color:#64748b;font-size:13px;">Update the order status. The customer will see the saved status in their tracking page.</p>
-        <div class="form-group">
-          <label for="orderStatusSelect">New order status</label>
-          <select id="orderStatusSelect">
-            <option value="pending" ${String(order.order_status || "pending").toLowerCase() === "pending" ? "selected" : ""}>Pending</option>
-            <option value="confirmed" ${String(order.order_status || "").toLowerCase() === "confirmed" ? "selected" : ""}>Confirmed</option>
-            <option value="processing" ${String(order.order_status || "").toLowerCase() === "processing" ? "selected" : ""}>Processing</option>
-            <option value="packaging" ${String(order.order_status || "").toLowerCase() === "packaging" ? "selected" : ""}>Packaging</option>
-            <option value="shipped" ${String(order.order_status || "").toLowerCase() === "shipped" ? "selected" : ""}>Shipped</option>
-            <option value="delivered" ${String(order.order_status || "").toLowerCase() === "delivered" ? "selected" : ""}>Delivered</option>
-            <option value="cancelled" ${String(order.order_status || "").toLowerCase() === "cancelled" ? "selected" : ""}>Cancelled</option>
-            <option value="delivery_failed" ${String(order.order_status || "").toLowerCase() === "delivery_failed" ? "selected" : ""}>Delivery Failed</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="orderStatusNote">Update note (optional)</label>
-          <textarea id="orderStatusNote" placeholder="e.g. Handed over to courier; tracking number..." style="min-height:75px;"></textarea>
-        </div>
-        <div id="orderStatusUpdateMessage" class="form-message" role="status" aria-live="polite"></div>
-        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-          <button type="button" class="save-button" id="saveOrderStatusButton" onclick="saveOrderStatus(${Number(order.id)})">Save Status</button>
-        </div>
-      </div>
 
       <!-- PRODUCTS -->
 
@@ -4197,7 +4179,7 @@ async function viewOrder(orderId) {
       </div>
 
     `;
-
+    await loadOrderStatusHistory(orderId);
 
   } catch (error) {
 
@@ -4231,51 +4213,43 @@ async function viewOrder(orderId) {
 // =========================================
 
 async function saveOrderStatus(orderId) {
-  const statusSelect = document.getElementById("orderStatusSelect");
+  const select = document.getElementById("orderStatusSelect");
   const noteInput = document.getElementById("orderStatusNote");
-  const message = document.getElementById("orderStatusUpdateMessage");
-  const button = document.getElementById("saveOrderStatusButton");
-  if (!statusSelect || !noteInput || !message || !button) return;
-
-  message.className = "form-message";
-  message.style.display = "none";
-  button.disabled = true;
-  button.textContent = "Saving...";
-
+  const message = document.getElementById("orderStatusMessage");
+  if (!select || !message) return;
+  message.textContent = "Saving…";
   try {
     const response = await fetch(`/api/admin/orders/${Number(orderId)}/status`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: statusSelect.value,
-        note: noteInput.value.trim()
-      })
+      method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: select.value, note: noteInput?.value || "" })
     });
-
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok) {
-      throw new Error(data.error || "Unable to update order status.");
-    }
-
-    message.textContent = data.message || "Order status updated successfully.";
-    message.className = "form-message success";
-    noteInput.value = "";
+    if (!response.ok || !data.ok) throw new Error(data.error || "Could not update status.");
+    message.style.color = "#16835f";
+    message.textContent = "Status saved.";
+    const current = document.getElementById("orderStatusCurrent");
+    if (current) current.textContent = select.options[select.selectedIndex].text;
+    if (noteInput) noteInput.value = "";
     await loadOrders();
-    await viewOrder(Number(orderId));
+    await loadOrderStatusHistory(orderId);
   } catch (error) {
-    console.error("Order status update error:", error);
-    message.textContent = error.message || "Unable to update order status.";
-    message.className = "form-message error";
-  } finally {
-    const currentButton = document.getElementById("saveOrderStatusButton");
-    if (currentButton) {
-      currentButton.disabled = false;
-      currentButton.textContent = "Save Status";
-    }
+    message.style.color = "#b42318";
+    message.textContent = error.message;
   }
 }
-
+async function loadOrderStatusHistory(orderId) {
+  const target = document.getElementById("orderStatusHistory");
+  if (!target) return;
+  try {
+    const response = await fetch(`/api/admin/orders/${Number(orderId)}/tracking-history`, { credentials: "include" });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) throw new Error(data.error || "History unavailable.");
+    const history = data.history || [];
+    target.innerHTML = `<strong>Status history</strong><div style="margin-top:8px;">${history.length ? history.map(h => `<p style="margin:6px 0;">${escapeHtml(h.old_status || "Created")} → <strong>${escapeHtml(h.new_status)}</strong> · ${escapeHtml(h.created_at || "")} ${h.note ? "· " + escapeHtml(h.note) : ""}</p>`).join("") : "No status changes recorded yet."}</div>`;
+  } catch (error) {
+    target.textContent = error.message;
+  }
+}
 
 function closeOrderDetailsModal() {
 
