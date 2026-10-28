@@ -1021,41 +1021,6 @@
 
       <!-- Payment -->
 
-      <!-- Partial Payment -->
-
-      <div class="partial-payment">
-
-        <strong>
-          Set Partial Payment Amount For Order
-        </strong>
-
-        <div class="partial-input">
-
-          <input
-            id="partialPayment"
-            type="number"
-            min="0"
-            value="500"
-          >
-
-          <span>
-            ৳
-          </span>
-
-        </div>
-
-        <div class="payment-note">
-          Min: ৳500 | Max:
-          <span id="maxPayment">
-            ৳0
-          </span>
-        </div>
-
-      </div>
-
-
-      <!-- Payment -->
-
       <div class="payment-method">
 
         <!-- Cash on Delivery -->
@@ -1727,6 +1692,31 @@ async function placeOrder() {
       "terms"
     ).checked;
 
+  // Read the selected payment method and mobile-payment details.
+  const paymentMethod =
+    document.querySelector('input[name="payment"]:checked')?.value || "online";
+
+  const paymentProvider =
+    document.getElementById("paymentProvider")?.value || "";
+
+  const transactionId =
+    document.getElementById("transactionId")?.value.trim() || "";
+
+  // Mobile-payment details are required only for online payment.
+  if (paymentMethod === "online") {
+    if (!["bkash", "nagad", "rocket"].includes(paymentProvider)) {
+      alert("Please select a valid mobile payment service.");
+      document.getElementById("paymentProvider")?.focus();
+      return;
+    }
+
+    if (!transactionId) {
+      alert("Please enter your Transaction ID (TrxID).");
+      document.getElementById("transactionId")?.focus();
+      return;
+    }
+  }
+
 
   if (
     !name ||
@@ -1861,10 +1851,17 @@ const partialPayment =
 
               partialPayment,
 
-             paymentMethod:
-  document.querySelector(
-    'input[name="payment"]:checked'
-  )?.value || "online"
+paymentMethod,
+
+paymentProvider:
+  paymentMethod === "online"
+    ? paymentProvider
+    : null,
+
+transactionId:
+  paymentMethod === "online"
+    ? transactionId
+    : null
             })
 
         }
@@ -1902,7 +1899,7 @@ const partialPayment =
 
 
     /* Order is placed; mobile payments still need admin verification. */
-    const placedPaymentMethod = document.querySelector('input[name="payment"]:checked')?.value || "cod";
+    const placedPaymentMethod = paymentMethod;
     const paymentMessage = placedPaymentMethod === "cod"
       ? "Cash on Delivery selected."
       : "Payment status: Pending Verification. CANVO will check your TrxID before marking it paid.";
