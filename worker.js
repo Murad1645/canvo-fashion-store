@@ -1087,53 +1087,33 @@ if (
             shipping_city,
             notes,
             discount,
-            partial_payment,
-            payment_provider,
-            transaction_id,
-            payment_verification_note
+            partial_payment
           )
           VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
           )
         `)
         .bind(
-
           orderNumber,
-
           customerId,
-
           subtotal,
-
           shippingFee,
-
           totalAmount,
-
           storedPaymentMethod,
-
           paymentMethod === "cod" ? "pending" : "pending_verification",
-
-          "pending",
-
-          customer.name,
-
-          customer.phone,
-
-          shippingAddress,
-
-          customer.district,
-
-          customer.note || "",
-
-          discount,
-
-          partialPayment,
-
           paymentMethod === "cod" ? null : paymentProvider,
-
           paymentMethod === "cod" ? null : transactionId,
-
-          paymentMethod === "cod" ? "Cash on Delivery" : "Awaiting admin verification"
-
+          paymentMethod === "cod"
+            ? "Cash on Delivery"
+            : "Awaiting admin verification",
+          "pending",
+          customer.name,
+          customer.phone,
+          shippingAddress,
+          customer.district,
+          customer.note || "",
+          discount,
+          partialPayment
         )
         .run();
 
