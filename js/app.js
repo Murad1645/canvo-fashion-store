@@ -2219,7 +2219,13 @@ function openCart() {
   renderCart();
 
   const closeButton = cart.querySelector(".cart-head button");
-  if (closeButton) closeButton.focus({ preventScroll: true });
+  if (closeButton) {
+    try {
+      closeButton.focus({ preventScroll: true });
+    } catch (_) {
+      closeButton.focus();
+    }
+  }
 }
 
 
@@ -2290,7 +2296,7 @@ async function updateCustomerHeader() {
     loginLink.href = "account.html";
     loginLink.setAttribute("aria-label", "Customer account dashboard");
     loginLink.title = "My account";
-    loginLink.innerHTML = `<span aria-hidden="true">♙</span><small>ACCOUNT</small>`;
+    loginLink.innerHTML = `<svg class="account-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c.6-3.5 3.2-5.5 7-5.5s6.4 2 7 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>ACCOUNT</small>`;
     if (!logoutButton) {
       logoutButton = document.createElement("button");
       logoutButton.type = "button";
@@ -2311,7 +2317,7 @@ async function updateCustomerHeader() {
     loginLink.href = "login.html";
     loginLink.setAttribute("aria-label", "Customer login");
     loginLink.title = "Customer login";
-    loginLink.innerHTML = `<span aria-hidden="true">♙</span><small>LOGIN</small>`;
+    loginLink.innerHTML = `<svg class="account-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M5 20c.6-3.5 3.2-5.5 7-5.5s6.4 2 7 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><small>LOGIN</small>`;
     if (logoutButton) logoutButton.remove();
   }
 }
@@ -2763,6 +2769,21 @@ function buyNowSelectedVariant() {
 // HOMEPAGE INTERACTIONS: CATEGORY FILTER + CART ESCAPE
 // ========================================================
 document.addEventListener("DOMContentLoaded", () => {
+  // Bind the homepage cart button explicitly so the cart drawer opens reliably.
+  const homepageCartButton = document.querySelector(".canvo-header-actions .cart-btn");
+  if (homepageCartButton) {
+    homepageCartButton.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openCart();
+    });
+  }
+
+  const cartPanel = document.getElementById("cartPanel");
+  if (cartPanel && !cartPanel.classList.contains("active")) {
+    cartPanel.setAttribute("aria-hidden", "true");
+  }
+
   document.querySelectorAll(".category-card[data-category]").forEach(card => {
     card.addEventListener("click", event => {
       event.preventDefault();
