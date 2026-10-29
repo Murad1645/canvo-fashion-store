@@ -316,6 +316,123 @@
     .canvo-wishlist-card { position:absolute !important; z-index:2 !important; top:12px !important; right:12px !important; width:36px !important; height:36px !important; border:1px solid #e5e7eb !important; border-radius:50% !important; background:#fff !important; color:#10132b !important; font-size:22px !important; line-height:1 !important; cursor:pointer !important; box-shadow:0 2px 8px #0001 !important; }
     .canvo-wishlist-card:hover { color:#0f9f6e !important; border-color:#0f9f6e !important; }
 
+
+    /* =====================================================
+       HOMEPAGE PRODUCT SIZE + COMPACT MOBILE NAVIGATION
+       Only visual/layout changes; product/cart logic untouched.
+    ====================================================== */
+    /* Keep homepage product cards more compact on desktop. */
+    #new-arrivals .product-grid,
+    #productGrid.product-grid {
+      gap: 16px !important;
+    }
+    #new-arrivals .product-image,
+    #productGrid .product-image {
+      height: 290px !important;
+      background: #f2f2f2 !important;
+    }
+    #new-arrivals .product-image img,
+    #productGrid .product-image img {
+      object-fit: contain !important;
+      padding: 8px !important;
+    }
+    #new-arrivals .product-info,
+    #productGrid .product-info {
+      padding: 12px 10px 14px !important;
+    }
+    #new-arrivals .product-info h3,
+    #productGrid .product-info h3 {
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+    }
+    #new-arrivals .product-price,
+    #productGrid .product-price {
+      gap: 5px !important;
+      flex-wrap: wrap !important;
+    }
+
+    @media (max-width: 700px) {
+      /* Compact two-column product cards like the reference layout. */
+      #new-arrivals .product-grid,
+      #productGrid.product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+      }
+      #new-arrivals .product-image,
+      #productGrid .product-image {
+        height: clamp(145px, 43vw, 205px) !important;
+      }
+      #new-arrivals .product-image img,
+      #productGrid .product-image img {
+        padding: 5px !important;
+      }
+      #new-arrivals .product-info,
+      #productGrid .product-info {
+        padding: 9px 7px 11px !important;
+      }
+      #new-arrivals .product-info h3,
+      #productGrid .product-info h3 {
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+      }
+      #new-arrivals .product-info p,
+      #productGrid .product-info p {
+        font-size: 10px !important;
+        margin-top: 5px !important;
+      }
+      #new-arrivals .product-price strong,
+      #productGrid .product-price strong {
+        font-size: 12px !important;
+      }
+      #new-arrivals .old-price,
+      #productGrid .old-price,
+      #new-arrivals .discount-amount,
+      #productGrid .discount-amount {
+        font-size: 10px !important;
+      }
+      #new-arrivals .add-btn,
+      #productGrid .add-btn {
+        height: 35px !important;
+        margin-top: 9px !important;
+        font-size: 9px !important;
+      }
+
+      /* Arrange the five green nav buttons in three compact rows:
+         2 buttons, 2 buttons, then About centered. */
+      .canvo-bata-header .nav {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        align-items: stretch !important;
+        justify-content: stretch !important;
+        gap: 8px !important;
+        padding: 10px 0 12px !important;
+      }
+      .canvo-bata-header .nav a {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 38px !important;
+        padding: 9px 6px !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        letter-spacing: .025em !important;
+        text-align: center !important;
+        white-space: normal !important;
+      }
+      .canvo-bata-header .nav a:last-child {
+        grid-column: 1 / -1 !important;
+        justify-self: center !important;
+        width: min(50%, 180px) !important;
+      }
+    }
+
+    @media (max-width: 380px) {
+      #new-arrivals .product-grid,
+      #productGrid.product-grid { gap: 8px !important; }
+      #new-arrivals .product-image,
+      #productGrid .product-image { height: 145px !important; }
+      .canvo-bata-header .nav a { font-size: 9px !important; padding: 8px 4px !important; }
+    }
+
   </style>
 </head>
 
